@@ -440,6 +440,35 @@ input[type="range"]::-moz-range-thumb {
 .mapping-svg .el.lonely { stroke: var(--red); stroke-dasharray: 4 3; }
 .answer-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
 
+/* Venn diyagramı */
+.venn-svg { width: 100%; max-width: 480px; display: block; margin: 0 auto; }
+.venn-svg .venn-on { fill: var(--blue); fill-opacity: .35; }
+.venn-svg .venn-off { fill: transparent; }
+.venn-svg .venn-line { fill: none; stroke: var(--blue-deep); stroke-width: 2.2; }
+.venn-svg text { fill: var(--ink); font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; }
+.venn-svg .set-name { fill: var(--blue-deep); font-size: 20px; }
+
+/* Sayı kümeleri iç içe kutular */
+.nested { font-size: 13px; font-weight: 700; }
+.nest { border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px; background: var(--white); color: var(--ink-soft); transition: background .2s, border-color .2s, color .2s; }
+.nest > span { display: block; margin-bottom: 6px; }
+.nest.on { border-color: var(--green); background: var(--green-pale); color: var(--green); }
+.nest .nest { margin-top: 4px; }
+.nest-row { display: flex; gap: 8px; align-items: stretch; }
+.nest-row > .n-q { flex: 3; }
+.nest-row > .n-i { flex: 1; min-width: 90px; }
+
+/* Sayı doğrusu */
+.nl-svg { width: 100%; max-width: 520px; display: block; margin: 0 auto; }
+.nl-axis { stroke: var(--plot-axis); stroke-width: 2; }
+.nl-tick { stroke: var(--plot-axis); stroke-width: 1.5; }
+.nl-num { fill: var(--ink-soft); font-size: 12px; font-weight: 600; font-family: Inter, sans-serif; }
+.nl-range { stroke: var(--pink); stroke-width: 7; stroke-linecap: butt; }
+.nl-arrow { fill: var(--pink); }
+.nl-dot { stroke: var(--pink); stroke-width: 3; }
+.nl-dot.closed { fill: var(--pink); }
+.nl-dot.open { fill: var(--white); }
+
 /* ---------- Grafik çizici sayfası ---------- */
 .grapher { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; }
 .grapher-panel { padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100dvh - 90px); overflow-y: auto; position: sticky; top: 24px; }

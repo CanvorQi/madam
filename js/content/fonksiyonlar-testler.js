@@ -238,7 +238,7 @@
                 { no: 4, q: R`Aşağıdaki eşitliklerle tanımlanan $f: [-2, 2] \to \mathbb{R}$ fonksiyonunun grafiğini çiziniz.`, note: "Grafik çizicide tanım kümesi kısıtlanmaz; sadece [−2, 2] aralığına bak.", parts: [
                     part("a", R`$f(x) = \llbracket -x \rrbracket$`, R`$x=-2$: 2; $(-2,-1]$: 1; $(-1, 0]$: 0; $(0, 1]$: −1; $(1, 2]$: −2`, [R`$-x$'in tam kısmı: örn. $x = 0{,}5 \Rightarrow \llbracket -0{,}5 \rrbracket = -1$. Basamaklar bu kez sağ uçta dolu.`], ["[-x]"]),
                     part("b", R`$f(x) = \llbracket 2x \rrbracket$`, R`Genişliği $\frac12$ olan basamaklar: $[\frac k2, \frac{k+1}2)$'de değer $k$`, [R`$x = -2$'de $-4$, $[1{,}5;\,2)$'de $3$, $x = 2$'de $4$.`], ["[2x]"]),
-                    part("c", R`$f(x) = \Big\llbracket \frac x2 \Big\rrbracket$`, R`$[-2, 0)$: $-1$; $\;[0, 2)$: $0$; $\;x = 2$: $1$`, [R`Basamak genişliği 2.`], ["[x/2]"]),
+                    part("c", R`$f(x) = \llbracket \frac x2 \rrbracket$`, R`$[-2, 0)$: $-1$; $\;[0, 2)$: $0$; $\;x = 2$: $1$`, [R`Basamak genişliği 2.`], ["[x/2]"]),
                     part("d", R`$f(x) = 2\llbracket x \rrbracket$`, R`$-4, -2, 0, 2$ (her birim aralıkta), $x = 2$'de $4$`, [R`Basamak yükseklikleri 2 katına çıkar.`], ["2[x]"]),
                     part("e", R`$f(x) = -3\llbracket x \rrbracket$`, R`$[-2,-1)$: 6; $[-1,0)$: 3; $[0,1)$: 0; $[1,2)$: −3; $x=2$: −6`, [R`Değerler $-3$ ile çarpılır: merdiven aşağı iner.`], ["-3[x]"]),
                     part("f", R`$f(x) = |\llbracket x \rrbracket|$`, R`$[-2,-1)$: 2; $[-1,0)$: 1; $[0,1)$: 0; $[1,2)$: 1; $x=2$: 2`, [R`Negatif basamaklar yukarı katlanır.`], ["abs([x])"]),
@@ -542,7 +542,7 @@
 
         /* ----------------------- Bölüm Problemleri ----------------------- */
         {
-            id: "bolum-problemleri", title: "Bölüm Problemleri · Fonksiyonlar", page: "79–80", sections: ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"],
+            id: "bolum-problemleri", title: "Bölüm Problemleri · Fonksiyonlar", page: "79–80", whole: true, sections: ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"],
             problems: [
                 { no: 1, q: R`$f(x) = \sqrt{1 - x^2}$ için $(f\circ f)(x) = x$ olduğunu gösteriniz. $f^{-1} = f$ midir?`, note: R`Eşitlik yalnızca $x \in [0, 1]$ için doğrudur.`,
                     a: R`$[0, 1]$'de $f\circ f = x$ ve $f^{-1} = f$`, s: [R`$f(f(x)) = \sqrt{1 - (1 - x^2)} = \sqrt{x^2} = |x|$. $x \geq 0$ ise $= x$.`, R`$[-1, 1]$'de $f$ birebir değil ($f(-x) = f(x)$), tersi yok.`, R`$f: [0, 1] \to [0, 1]$ olarak alınırsa birebir örten ve $f\circ f = I$ olduğundan $f^{-1} = f$. (Grafiği $y = x$'e göre kendine simetrik bir çeyrek çember.)`], graph: ["sqrt(1-x^2)", "y = x"] },
@@ -619,5 +619,9 @@
         },
     ];
 
-    global.PRACTICE = { tests, problemSets };
+    global.PRACTICE = global.PRACTICE || { tests: [], problemSets: [] };
+    tests.forEach((t) => (t.chapter = "fonksiyonlar"));
+    problemSets.forEach((s) => (s.chapter = "fonksiyonlar"));
+    global.PRACTICE.tests.push(...tests);
+    global.PRACTICE.problemSets.push(...problemSets);
 })(window);

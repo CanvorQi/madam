@@ -909,6 +909,146 @@
         render();
     };
 
+    /* ---------------- Venn diyagramı: küme işlemleri ---------------- */
+    W.venn = function (root, o) {
+        const E = o.universe || [1, 2, 3, 4, 5, 6, 7, 8];
+        const A = new Set(o.A || [1, 2, 3, 4]), B = new Set(o.B || [3, 4, 5, 6]);
+        const ops = [
+            { l: "A ∪ B", t: "A \\cup B", f: (a, b) => a || b, d: "A'da <b>veya</b> B'de olanlar" },
+            { l: "A ∩ B", t: "A \\cap B", f: (a, b) => a && b, d: "A'da <b>ve</b> B'de olanlar (ortak)" },
+            { l: "A \\ B", t: "A \\setminus B", f: (a, b) => a && !b, d: "A'da olup B'de <b>olmayanlar</b>" },
+            { l: "B \\ A", t: "B \\setminus A", f: (a, b) => b && !a, d: "B'de olup A'da olmayanlar" },
+            { l: "Aᵗ", t: "A^t", f: (a) => !a, d: "Evrensel kümede olup A'da olmayanlar" },
+            { l: "(A ∪ B)ᵗ", t: "(A \\cup B)^t", f: (a, b) => !(a || b), d: "Ne A'da ne B'de olanlar" },
+        ];
+        let oi = 0;
+        chips(root, ops.map((x) => x.l), 0, (i) => { oi = i; draw(); });
+        const holder = el(`<div style="margin-top:12px"></div>`);
+        root.appendChild(holder);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        const uid = Math.random().toString(36).slice(2, 8);
+        const set = (arr) => `\\{${arr.join(", ")}\\}`;
+
+        function draw() {
+            const op = ops[oi];
+            const region = (a, b) => op.f(a, b);
+            const groups = { a: [], ab: [], b: [], out: [] };
+            E.forEach((x) => {
+                const a = A.has(x), b = B.has(x);
+                groups[a && b ? "ab" : a ? "a" : b ? "b" : "out"].push(x);
+            });
+            const fill = (on) => (on ? "venn-on" : "venn-off");
+            const col = (arr, cx) => arr.map((x, i) => `<text x="${cx}" y="${150 - (arr.length - 1) * 16 + i * 32}" text-anchor="middle">${x}</text>`).join("");
+            const outPos = [[40, 42], [420, 42], [40, 250], [420, 250], [230, 26], [230, 270]];
+            holder.innerHTML = `<svg class="venn-svg" viewBox="0 0 460 290" role="img" aria-label="Venn diyagramı">
+                <defs>
+                    <clipPath id="ca${uid}"><circle cx="180" cy="150" r="100"/></clipPath>
+                    <mask id="nb${uid}"><rect width="460" height="290" fill="#fff"/><circle cx="280" cy="150" r="100" fill="#000"/></mask>
+                    <mask id="na${uid}"><rect width="460" height="290" fill="#fff"/><circle cx="180" cy="150" r="100" fill="#000"/></mask>
+                    <mask id="nab${uid}"><rect width="460" height="290" fill="#fff"/><circle cx="180" cy="150" r="100" fill="#000"/><circle cx="280" cy="150" r="100" fill="#000"/></mask>
+                </defs>
+                <rect class="${fill(region(false, false))}" x="4" y="4" width="452" height="282" rx="16" mask="url(#nab${uid})"/>
+                <circle class="${fill(region(true, false))}" cx="180" cy="150" r="100" mask="url(#nb${uid})"/>
+                <circle class="${fill(region(false, true))}" cx="280" cy="150" r="100" mask="url(#na${uid})"/>
+                <circle class="${fill(region(true, true))}" cx="280" cy="150" r="100" clip-path="url(#ca${uid})"/>
+                <rect class="venn-line" x="4" y="4" width="452" height="282" rx="16"/>
+                <circle class="venn-line" cx="180" cy="150" r="100"/><circle class="venn-line" cx="280" cy="150" r="100"/>
+                <text class="set-name" x="96" y="70">A</text><text class="set-name" x="356" y="70">B</text><text class="set-name" x="22" y="150">E</text>
+                ${col(groups.a, 130)}${col(groups.ab, 230)}${col(groups.b, 330)}
+                ${groups.out.map((x, i) => `<text x="${outPos[i % 6][0]}" y="${outPos[i % 6][1]}" text-anchor="middle">${x}</text>`).join("")}
+            </svg>`;
+            const res = E.filter((x) => op.f(A.has(x), B.has(x)));
+            let extra = "";
+            if (oi === 0) {
+                const inter = E.filter((x) => A.has(x) && B.has(x)).length;
+                extra = `<br>Eleman sayısı: ${tex(`s(A\\cup B) = s(A) + s(B) - s(A\\cap B) = ${A.size} + ${B.size} - ${inter} = ${res.length}`)} — ortak elemanlar iki kez sayılmasın diye bir kez çıkarılır.`;
+            }
+            readout.innerHTML = `${tex(`A = ${set([...A])},\\; B = ${set([...B])},\\; E = ${set(E)}`)}<br>${op.d}: ${tex(`${op.t} = ${res.length ? set(res) : "\\varnothing"}`)}${extra}`;
+        }
+        draw();
+    };
+
+    /* ---------------- Sayı kümeleri sınıflandırıcı ---------------- */
+    W.numclass = function (root) {
+        const items = [
+            { t: "7", s: "NZQR", why: "Sayma sayısı (doğal sayı); her doğal sayı aynı zamanda tam, rasyonel ve reeldir." },
+            { t: "-3", s: "ZQR", why: "Negatif tam sayı: doğal değil ama tam sayı. $-3 = \\frac{-3}{1}$ olduğu için rasyonel." },
+            { t: "0", s: "ZQR", why: "Bu kitapta doğal sayılar 1'den başlar; 0 tam sayıdır. (Bazı kaynaklar 0'ı da doğal sayı sayar.)" },
+            { t: "\\frac{2}{3}", s: "QR", why: "İki tam sayının bölümü: rasyonel. Tam sayı değil." },
+            { t: "0{,}75", s: "QR", why: "$0{,}75 = \\frac34$: sonlu ondalık sayılar rasyoneldir." },
+            { t: "0{,}333\\ldots", s: "QR", why: "Devirli ondalık: $0{,}\\overline{3} = \\frac13$, rasyonel." },
+            { t: "\\sqrt{2}", s: "IR", why: "$\\frac pq$ biçiminde yazılamaz (kitaptaki ispat): irrasyonel." },
+            { t: "\\pi", s: "IR", why: "$\\pi = 3{,}14159\\ldots$ ondalıkları ne biter ne de tekrar eder: irrasyonel." },
+            { t: "-\\sqrt{9}", s: "ZQR", why: "Görünüşe aldanma: $-\\sqrt9 = -3$, bir tam sayı." },
+        ];
+        let ii = 0;
+        chips(root, items.map((x) => tex(x.t)), 0, (i) => { ii = i; draw(); });
+        const out = el(`<div class="numclass" style="margin-top:12px"></div>`);
+        root.appendChild(out);
+        const names = [["N", "Doğal sayılar", "\\mathbb{N}"], ["Z", "Tam sayılar", "\\mathbb{Z}"], ["Q", "Rasyonel sayılar", "\\mathbb{Q}"], ["I", "İrrasyonel sayılar", "\\mathbb{Q}'"], ["R", "Reel sayılar", "\\mathbb{R}"]];
+        function draw() {
+            const it = items[ii];
+            out.innerHTML = `<div class="nested">
+                <div class="nest n-r ${it.s.includes("R") ? "on" : ""}"><span>${tex("\\mathbb{R}")} Reel</span>
+                    <div class="nest-row">
+                        <div class="nest n-q ${it.s.includes("Q") ? "on" : ""}"><span>${tex("\\mathbb{Q}")} Rasyonel</span>
+                            <div class="nest n-z ${it.s.includes("Z") ? "on" : ""}"><span>${tex("\\mathbb{Z}")} Tam</span>
+                                <div class="nest n-n ${it.s.includes("N") ? "on" : ""}"><span>${tex("\\mathbb{N}")} Doğal</span></div>
+                            </div>
+                        </div>
+                        <div class="nest n-i ${it.s.includes("I") ? "on" : ""}"><span>İrrasyonel</span></div>
+                    </div>
+                </div></div>
+                <div class="readout"><b style="font-size:17px">${tex(it.t)}</b> &nbsp; ${names.map(([k, n, tx]) => `<span class="pill ${it.s.includes(k) ? "green" : "gray"}" style="margin:2px">${it.s.includes(k) ? "✓" : "✗"} ${n}</span>`).join(" ")}<br>${it.why.replace(/\$([^$]+)\$/g, (m, x) => tex(x))}</div>`;
+        }
+        draw();
+    };
+
+    /* ---------------- Aralıklar: sayı doğrusu ---------------- */
+    W.interval = function (root) {
+        const kinds = [
+            { l: "[a, b]", ca: true, cb: true }, { l: "(a, b)", ca: false, cb: false },
+            { l: "[a, b)", ca: true, cb: false }, { l: "(a, b]", ca: false, cb: true },
+            { l: "[a, +∞)", ca: true, inf: "right" }, { l: "(−∞, b)", cb: false, inf: "left" },
+        ];
+        let ki = 0;
+        chips(root, kinds.map((k) => k.l), 0, (i) => { ki = i; draw(); });
+        const holder = el(`<div style="margin-top:12px"></div>`);
+        root.appendChild(holder);
+        const ctrls = el(`<div class="controls"></div>`);
+        root.appendChild(ctrls);
+        const sa = slider(ctrls, { label: "a", min: -5, max: 4, step: 0.5, value: -2 }, () => { if (sb.get() <= sa.get()) sb.set(sa.get() + 0.5); draw(); });
+        const sb = slider(ctrls, { label: "b", min: -4, max: 5, step: 0.5, value: 3 }, () => { if (sa.get() >= sb.get()) sa.set(sb.get() - 0.5); draw(); });
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        const X = (v) => 30 + ((v + 6) / 12) * 400;
+        function draw() {
+            const k = kinds[ki], a = sa.get(), b = sb.get();
+            const left = k.inf === "left" ? 10 : X(a), right = k.inf === "right" ? 450 : X(b);
+            let ticks = "";
+            for (let v = -6; v <= 6; v++) ticks += `<line class="nl-tick" x1="${X(v)}" y1="54" x2="${X(v)}" y2="66"/><text class="nl-num" x="${X(v)}" y="86" text-anchor="middle">${v < 0 ? "−" + -v : v}</text>`;
+            const dot = (x, closed) => `<circle class="nl-dot ${closed ? "closed" : "open"}" cx="${x}" cy="60" r="7"/>`;
+            holder.innerHTML = `<svg class="nl-svg" viewBox="0 0 460 100" role="img" aria-label="Sayı doğrusu">
+                <line class="nl-axis" x1="10" y1="60" x2="450" y2="60"/>${ticks}
+                <line class="nl-range" x1="${left}" y1="60" x2="${right}" y2="60"/>
+                ${k.inf === "right" ? `<path class="nl-arrow" d="M450 60 l-12 -7 v14 z"/>` : ""}${k.inf === "left" ? `<path class="nl-arrow" d="M10 60 l12 -7 v14 z"/>` : ""}
+                ${k.inf !== "left" ? dot(X(a), k.ca) : ""}${k.inf !== "right" ? dot(X(b), k.cb) : ""}
+            </svg>`;
+            const A = texNum(a), Bv = texNum(b);
+            let note, setb;
+            if (k.inf === "right") { note = `[${fmt(a)}, +∞)`; setb = `\\{x \\in \\mathbb{R} : x \\ge ${A}\\}`; }
+            else if (k.inf === "left") { note = `(−∞, ${fmt(b)})`; setb = `\\{x \\in \\mathbb{R} : x < ${Bv}\\}`; }
+            else {
+                note = `${k.ca ? "[" : "("}${fmt(a)}, ${fmt(b)}${k.cb ? "]" : ")"}`;
+                setb = `\\{x \\in \\mathbb{R} : ${A} ${k.ca ? "\\le" : "<"} x ${k.cb ? "\\le" : "<"} ${Bv}\\}`;
+            }
+            const len = k.inf ? "Boyu sonsuz (sonsuz aralık)." : `Boyu b − a = ${fmt(b - a)}.`;
+            readout.innerHTML = `<b style="font-size:17px">${note}</b> &nbsp;=&nbsp; ${tex(setb)}<br>Dolu nokta: o sayı aralığa <b>dahil</b> (köşeli parantez). Boş nokta: dahil <b>değil</b> (normal parantez). ${len}`;
+        }
+        draw();
+    };
+
     W._helpers = { el, tex, texNum, fmt, makePlot, slider, chips, exactVal, radTex };
     global.Widgets = W;
 })(window);

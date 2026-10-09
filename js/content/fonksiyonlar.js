@@ -1024,19 +1024,18 @@
         },
     ];
 
-    global.CHAPTERS = {
-        fonksiyonlar: {
-            no: 1, id: "fonksiyonlar", title: "Fonksiyonlar",
-            intro: "Fonksiyon kavramından başlayıp özel fonksiyonlara, grafik çizim pratiklerine, trigonometrik, üstel, logaritmik ve hiperbolik fonksiyonlara uzanan bölüm.",
-            sections,
-        },
+    global.CHAPTERS = global.CHAPTERS || {};
+    global.CHAPTERS.fonksiyonlar = {
+        no: 1, id: "fonksiyonlar", title: "Fonksiyonlar",
+        intro: "Fonksiyon kavramından başlayıp özel fonksiyonlara, grafik çizim pratiklerine, trigonometrik, üstel, logaritmik ve hiperbolik fonksiyonlara uzanan bölüm.",
+        sections,
     };
 
     global.COURSE = {
         title: "Matematik 1",
         source: "Mustafa Balcı — Matematik 1",
         chapters: [
-            { no: 0, title: "Önbilgiler", sub: "Kümeler, sayılar, doğru ve çember" },
+            { no: 0, title: "Önbilgiler", sub: "6 alt konu · 18 ders", id: "onbilgiler" },
             { no: 1, title: "Fonksiyonlar", sub: "7 alt konu · 29 ders", id: "fonksiyonlar" },
             { no: 2, title: "Limit ve Süreklilik", sub: "Limit, sağ-sol limit, süreklilik" },
             { no: 3, title: "Türev", sub: "Türev kavramı ve kuralları" },

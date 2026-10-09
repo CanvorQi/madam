@@ -16,14 +16,15 @@
     let progress = store.get("madam_progress", {});
 
     /* ---------------- Ders listesi ---------------- */
-    const chapter = CHAPTERS.fonksiyonlar;
+    const chapters = Object.values(CHAPTERS).sort((a, b) => a.no - b.no);
     const lessons = [];
-    chapter.sections.forEach((s) => s.lessons.forEach((l, i) => lessons.push(Object.assign({}, l, { section: s, idxInSection: i }))));
+    chapters.forEach((ch) => ch.sections.forEach((s) => s.lessons.forEach((l, i) => lessons.push(Object.assign({}, l, { chapter: ch, section: s, idxInSection: i })))));
     const lessonById = {};
     lessons.forEach((l, i) => { l.index = i; lessonById[l.id] = l; });
+    const chapterLessons = (ch) => lessons.filter((l) => l.chapter === ch);
 
-    const doneCount = () => lessons.filter((l) => progress[l.id]).length;
-    const pct = () => Math.round((doneCount() / lessons.length) * 100);
+    const doneCount = (ch) => (ch ? chapterLessons(ch) : lessons).filter((l) => progress[l.id]).length;
+    const pct = (ch) => Math.round((doneCount(ch) / (ch ? chapterLessons(ch) : lessons).length) * 100);
 
     function esc(s) {
         return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -55,9 +56,6 @@
     function pageHome() {
         const last = lessonById[store.get("madam_last", "")];
         const next = last || lessons.find((l) => !progress[l.id]) || lessons[0];
-        const chapters = COURSE.chapters.map((c) => c.id
-            ? `<a class="chapter-card available" href="#/konu/${c.id}"><div class="chapter-no">${c.no}</div><div><div class="ct">${esc(c.title)}</div><div class="cs">${esc(c.sub)}</div></div></a>`
-            : `<div class="chapter-card locked" title="Yakında"><div class="chapter-no">${c.no}</div><div><div class="ct">${esc(c.title)}</div><div class="cs">Yakında</div></div></div>`).join("");
         return `
         <section class="hero">
             <svg class="hero-art" viewBox="0 0 200 160" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" aria-hidden="true">
@@ -74,24 +72,24 @@
         </section>
         <div class="stat-row">
             <div class="stat-box"><div class="num">${doneCount()}</div><div class="lbl">tamamlanan ders</div></div>
-            <div class="stat-box"><div class="num">${lessons.length}</div><div class="lbl">ders (Fonksiyonlar)</div></div>
+            <div class="stat-box"><div class="num">${lessons.length}</div><div class="lbl">ders · ${chapters.length} bölüm</div></div>
             <div class="stat-box"><div class="num">%${pct()}</div><div class="lbl">ilerleme</div></div>
         </div>
         ${last ? `<div class="card" style="margin-top:16px">
             <h2 class="section-title">Kaldığın yer</h2>
             <a class="lesson-row${progress[last.id] ? " done" : ""}" href="#/ders/${last.id}">
                 <div class="lesson-check">${progress[last.id] ? "✓" : last.idxInSection + 1}</div>
-                <div><div class="lt">${esc(last.title)}</div><div class="ls">${last.section.no} ${esc(last.section.title)}</div></div>
+                <div><div class="lt">${esc(last.title)}</div><div class="ls">${esc(last.chapter.title)} · ${last.section.no} ${esc(last.section.title)}</div></div>
                 <span class="arrow">›</span>
             </a></div>` : ""}
         <a class="card lesson-row" href="#/testler" style="margin-top:16px;padding:18px 20px">
             <div class="chapter-no" style="background:var(--green);color:#fff">🎯</div>
-            <div><div class="lt">Testler ve kitap problemleri</div><div class="ls">5 çoktan seçmeli test · kitaptaki ${PRACTICE.problemSets.reduce((a, s) => a + s.problems.length, 0)} problemin adım adım çözümü</div></div>
+            <div><div class="lt">Testler ve kitap problemleri</div><div class="ls">${PRACTICE.tests.length} çoktan seçmeli test · kitaptaki ${PRACTICE.problemSets.reduce((a, s) => a + s.problems.length, 0)} problemin adım adım çözümü</div></div>
             <span class="arrow">›</span>
         </a>
         <div class="card" style="margin-top:16px">
             <h2 class="section-title">Konular · ${esc(COURSE.title)}</h2>
-            <div class="chapter-grid">${chapters}</div>
+            ${chapterGrid()}
         </div>
         <div class="card">
             <h2 class="section-title">Her derste</h2>
@@ -109,9 +107,30 @@
         </div>`;
     }
 
-    /* ---------------- Bölüm sayfası ---------------- */
+    /* ---------------- Bölüm listesi ve bölüm sayfası ---------------- */
+    function chapterGrid() {
+        return `<div class="chapter-grid">${COURSE.chapters.map((c) => {
+            const ch = CHAPTERS[c.id];
+            if (!ch) return `<div class="chapter-card locked" title="Yakında"><div class="chapter-no">${c.no}</div><div><div class="ct">${esc(c.title)}</div><div class="cs">Yakında</div></div></div>`;
+            const p = pct(ch);
+            return `<a class="chapter-card available" href="#/konu/${c.id}"><div class="chapter-no">${c.no}</div><div style="flex:1;min-width:0"><div class="ct">${esc(c.title)}</div><div class="cs">${esc(c.sub)}</div>
+                <div class="progress-bar" style="height:5px;margin-top:6px"><span style="width:${p}%"></span></div></div></a>`;
+        }).join("")}</div>`;
+    }
+
+    function pageChapters() {
+        return `
+        <div class="page-head">
+            <div class="crumbs"><a href="#/">Ana Sayfa</a> › <span>Konular</span></div>
+            <h1>${esc(COURSE.title)}</h1>
+            <p>${esc(COURSE.source)} kitabının bölümleri. Hazır olanlara dokunup başla; diğerleri yakında eklenecek.</p>
+        </div>
+        <div class="card">${chapterGrid()}</div>`;
+    }
+
     function pageChapter(id) {
-        if (id !== chapter.id) return pageNotFound();
+        const chapter = CHAPTERS[id];
+        if (!chapter) return pageNotFound();
         const secs = chapter.sections.map((s) => {
             const d = s.lessons.filter((l) => progress[l.id]).length;
             const rows = s.lessons.map((l, i) => `
@@ -128,15 +147,17 @@
         }).join("");
         return `
         <div class="page-head">
-            <div class="crumbs"><a href="#/">Ana Sayfa</a> › <span>Bölüm ${chapter.no}</span></div>
+            <div class="crumbs"><a href="#/konular">Konular</a> › <span>Bölüm ${chapter.no}</span></div>
             <h1>${chapter.no}. ${esc(chapter.title)}</h1>
             <p>${esc(chapter.intro)}</p>
             <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
-                <div class="progress-bar" style="flex:1"><span style="width:${pct()}%"></span></div>
-                <b style="color:var(--blue-deep);font-family:Sora,sans-serif">%${pct()}</b>
+                <div class="progress-bar" style="flex:1"><span style="width:${pct(chapter)}%"></span></div>
+                <b style="color:var(--blue-deep);font-family:Sora,sans-serif">%${pct(chapter)}</b>
             </div>
         </div>
-        ${secs}`;
+        ${secs}
+        ${problemSets.filter((s) => s.whole && s.chapter === chapter.id).map((s) => `<div class="card"><div class="section-title">Bölüm sonu</div><div class="lesson-list">
+            <a class="lesson-row" href="#/problemler/${s.id}"><div class="lesson-check" style="border-color:var(--purple);color:var(--purple)">📚</div><div><div class="lt">${esc(s.title)}</div><div class="ls">Kitap s. ${s.page} · ${s.problems.length} problem · ${solvedCount(s)} çözüldü</div></div><span class="arrow">›</span></a></div></div>`).join("")}`;
     }
 
     /* ---------------- Ders sayfası ---------------- */
@@ -196,7 +217,7 @@
         const done = !!progress[l.id];
         return `
         <div class="lesson-hero">
-            <div class="crumbs"><a href="#/konu/${chapter.id}">${chapter.no}. ${esc(chapter.title)}</a> › <span>${l.section.no} ${esc(l.section.title)}</span></div>
+            <div class="crumbs"><a href="#/konu/${l.chapter.id}">${l.chapter.no}. ${esc(l.chapter.title)}</a> › <span>${l.section.no} ${esc(l.section.title)}</span></div>
             <h1>${esc(l.title)}</h1>
             <p class="lead">${l.summary} <span class="pill gray" style="margin-left:4px">Ders ${l.idxInSection + 1}/${l.section.lessons.length}</span> <span class="pill gray">Kitap s. ${l.section.page}+</span></p>
         </div>
@@ -208,7 +229,7 @@
             </div>
             <div class="lesson-nav">
                 ${prev ? `<a class="btn ghost nav-prev" href="#/ders/${prev.id}"><span><span class="nl">‹ Önceki</span>${esc(prev.title)}</span></a>` : "<span></span>"}
-                ${next ? `<a class="btn nav-next" href="#/ders/${next.id}"><span><span class="nl">Sonraki ›</span>${esc(next.title)}</span></a>` : `<a class="btn nav-next" href="#/konu/${chapter.id}">Bölüm özeti ›</a>`}
+                ${next ? `<a class="btn nav-next" href="#/ders/${next.id}"><span><span class="nl">${next.chapter === l.chapter ? "Sonraki ›" : `Sonraki bölüm: ${esc(next.chapter.title)} ›`}</span>${esc(next.title)}</span></a>` : `<a class="btn nav-next" href="#/konu/${l.chapter.id}">Bölüm özeti ›</a>`}
             </div>
         </div>`;
     }
@@ -267,7 +288,7 @@
     const graphLink = (exprs) => "#/grafik?e=" + encodeURIComponent(JSON.stringify(exprs));
     const practiceFor = (secNo) => ({
         tests: tests.filter((t) => t.sections.includes(secNo)),
-        sets: problemSets.filter((s) => s.sections.includes(secNo) && s.sections.length < 7),
+        sets: problemSets.filter((s) => s.sections.includes(secNo) && !s.whole),
     });
 
     function practiceLinks(secNo) {
@@ -277,20 +298,24 @@
     }
 
     function pagePractice() {
-        const tcards = tests.map((t) => {
+        const grouped = (list, render) => chapters.map((ch) => {
+            const items = list.filter((x) => x.chapter === ch.id);
+            return items.length ? `<div class="section-title" style="margin:14px 0 4px">${ch.no}. ${esc(ch.title)}</div>${items.map(render).join("")}` : "";
+        }).join("");
+        const tcards = grouped(tests, (t) => {
             const sc = testScores[t.id];
             return `<a class="lesson-row" href="#/test/${t.id}">
                 <div class="lesson-check" style="${sc ? "background:var(--green);border-color:var(--green);color:#fff" : ""}">${sc ? sc.best : "🎯"}</div>
                 <div><div class="lt">${esc(t.title)}</div><div class="ls">${esc(t.desc)}</div></div>
                 <span class="pill ${sc ? "green" : "gray"}" style="margin-left:auto;white-space:nowrap">${sc ? `en iyi ${sc.best}/${t.questions.length}` : `${t.questions.length} soru`}</span></a>`;
-        }).join("");
-        const pcards = problemSets.map((s) => {
+        });
+        const pcards = grouped(problemSets, (s) => {
             const n = solvedCount(s);
             return `<a class="lesson-row${n === s.problems.length ? " done" : ""}" href="#/problemler/${s.id}">
                 <div class="lesson-check">${n === s.problems.length ? "✓" : "📚"}</div>
                 <div><div class="lt">${esc(s.title)}</div><div class="ls">Kitap s. ${s.page}</div></div>
                 <span class="pill ${n ? "green" : "gray"}" style="margin-left:auto;white-space:nowrap">${n}/${s.problems.length}</span></a>`;
-        }).join("");
+        });
         return `
         <div class="page-head">
             <div class="crumbs"><a href="#/">Ana Sayfa</a> › <span>Testler</span></div>
@@ -717,6 +742,7 @@
         const page = parts[0] || "home";
         let html, after = null, navKey = page;
         if (page === "home") html = pageHome();
+        else if (page === "konular") { html = pageChapters(); navKey = "konu"; }
         else if (page === "konu") html = pageChapter(parts[1]);
         else if (page === "ders") { html = pageLesson(parts[1]); after = () => bindLesson(parts[1]); navKey = "konu"; }
         else if (page === "grafik") { html = pageGraph(); after = () => bindGraph(query); }
@@ -742,8 +768,10 @@
 
     function updateSidebar() {
         const el = document.getElementById("sidebarProgress");
-        el.innerHTML = `<div class="sp-label">Fonksiyonlar</div><div class="sp-value">%${pct()}</div><div class="progress-bar"><span style="width:${pct()}%"></span></div>
-            <div class="muted" style="font-size:12px;margin-top:6px">${doneCount()} / ${lessons.length} ders tamamlandı</div>`;
+        el.innerHTML = `<div class="sp-label">Toplam ilerleme</div><div class="sp-value">%${pct()}</div><div class="progress-bar"><span style="width:${pct()}%"></span></div>
+            <div class="muted" style="font-size:12px;margin:6px 0 12px">${doneCount()} / ${lessons.length} ders tamamlandı</div>
+            ${chapters.map((ch) => `<a href="#/konu/${ch.id}" style="display:block;margin-top:8px;color:var(--ink-soft);font-size:12px;font-weight:700">${ch.no}. ${esc(ch.title)} <span style="float:right">${doneCount(ch)}/${chapterLessons(ch).length}</span>
+                <div class="progress-bar" style="height:5px;margin-top:4px"><span style="width:${pct(ch)}%"></span></div></a>`).join("")}`;
     }
 
     /* ---------------- Tema ---------------- */
