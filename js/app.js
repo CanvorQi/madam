@@ -150,6 +150,7 @@
             <div class="crumbs"><a href="#/konular">Konular</a> › <span>Bölüm ${chapter.no}</span></div>
             <h1>${chapter.no}. ${esc(chapter.title)}</h1>
             <p>${esc(chapter.intro)}</p>
+            <div class="ex-actions"><a class="btn small ghost" href="#/ozet/${chapter.id}">📄 Formül özeti (kopya kâğıdı)</a></div>
             <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
                 <div class="progress-bar" style="flex:1"><span style="width:${pct(chapter)}%"></span></div>
                 <b style="color:var(--blue-deep);font-family:Sora,sans-serif">%${pct(chapter)}</b>
@@ -158,6 +159,33 @@
         ${secs}
         ${problemSets.filter((s) => s.whole && s.chapter === chapter.id).map((s) => `<div class="card"><div class="section-title">Bölüm sonu</div><div class="lesson-list">
             <a class="lesson-row" href="#/problemler/${s.id}"><div class="lesson-check" style="border-color:var(--purple);color:var(--purple)">📚</div><div><div class="lt">${esc(s.title)}</div><div class="ls">Kitap s. ${s.page} · ${s.problems.length} problem · ${solvedCount(s)} çözüldü</div></div><span class="arrow">›</span></a></div></div>`).join("")}`;
+    }
+
+    /* ---------------- Formül özeti (kopya kâğıdı) ---------------- */
+    function pageSummary(id) {
+        const chapter = CHAPTERS[id];
+        if (!chapter) return pageNotFound();
+        const kinds = { def: ["📘", "Tanım"], formula: ["🧮", "Formül"], table: ["📊", "Tablo"] };
+        const secs = chapter.sections.map((s) => {
+            const items = [];
+            s.lessons.forEach((l) => l.blocks.forEach((b) => {
+                if (!kinds[b.t]) return;
+                const title = b.title || kinds[b.t][1];
+                items.push(`<div class="sum-item sum-${b.t}">
+                    <div class="sum-title">${kinds[b.t][0]} ${title}<a class="sum-src no-print" href="#/ders/${l.id}" title="Derse git">${esc(l.title)} ›</a></div>
+                    <div class="sum-body">${b.html}</div></div>`);
+            }));
+            return items.length ? `<section class="sum-section"><h2 class="sum-head"><span class="section-num">${s.no}</span> ${esc(s.title)}</h2><div class="sum-grid">${items.join("")}</div></section>` : "";
+        }).join("");
+        return `
+        <div class="page-head no-print">
+            <div class="crumbs"><a href="#/konu/${chapter.id}">${chapter.no}. ${esc(chapter.title)}</a> › <span>Formül özeti</span></div>
+            <h1>Formül Özeti · ${esc(chapter.title)}</h1>
+            <p>Bölümdeki tüm tanım, formül ve tabloların bir arada hâli. Her kutudaki bağlantı ilgili derse götürür.</p>
+            <div class="ex-actions"><button type="button" class="btn small" data-print>🖨️ Yazdır / PDF kaydet</button></div>
+        </div>
+        <div class="print-only sum-print-head"><b>${esc(COURSE.title)} · ${chapter.no}. ${esc(chapter.title)}</b> — Formül özeti</div>
+        <div class="summary">${secs}</div>`;
     }
 
     /* ---------------- Ders sayfası ---------------- */
@@ -744,6 +772,10 @@
         if (page === "home") html = pageHome();
         else if (page === "konular") { html = pageChapters(); navKey = "konu"; }
         else if (page === "konu") html = pageChapter(parts[1]);
+        else if (page === "ozet") {
+            html = pageSummary(parts[1]); navKey = "konu";
+            after = () => { const b = view.querySelector("[data-print]"); if (b) b.addEventListener("click", () => window.print()); };
+        }
         else if (page === "ders") { html = pageLesson(parts[1]); after = () => bindLesson(parts[1]); navKey = "konu"; }
         else if (page === "grafik") { html = pageGraph(); after = () => bindGraph(query); }
         else if (page === "testler") html = pagePractice();
