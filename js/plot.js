@@ -165,7 +165,10 @@
             const up = (e) => {
                 const had = this._pointers.has(e.pointerId);
                 this._pointers.delete(e.pointerId);
-                if (had && !this._moved && e.type === "pointerup") this._setTrace(e.offsetX);
+                if (had && !this._moved && e.type === "pointerup") {
+                    if (this.onTap && this.onTap(this.ix(e.offsetX), this.iy(e.offsetY), e.offsetX, e.offsetY)) return;
+                    this._setTrace(e.offsetX);
+                }
             };
             c.addEventListener("pointerup", up);
             c.addEventListener("pointercancel", up);
@@ -213,6 +216,7 @@
                 if (it.hidden) continue;
                 switch (it.type) {
                     case "fn": this._fn(it); break;
+                    case "implicit": this._implicit(it); break;
                     case "param": this._param(it); break;
                     case "hline": this._line(it, true); break;
                     case "vline": this._line(it, false); break;
@@ -401,6 +405,36 @@
                     ctx.lineTo(this.X(x), clampY(y));
                 }
                 px = x; py = y;
+            }
+            ctx.stroke();
+            this._endStroke();
+        }
+
+        /* F(x, y) = 0 eğrisi: marching squares (her hücrede işaret değişimini çiz) */
+        _implicit(it) {
+            const ctx = this.ctx, F = it.F, cell = it.cell || 5;
+            const nx = Math.ceil(this.w / cell), ny = Math.ceil(this.h / cell);
+            const val = (i, j) => { const v = F(this.ix(i * cell), this.iy(j * cell)); return isFinite(v) ? v : NaN; };
+            let prev = new Float64Array(nx + 1), cur = new Float64Array(nx + 1);
+            for (let i = 0; i <= nx; i++) prev[i] = val(i, 0);
+            this._stroke(Object.assign({ width: 2.8 }, it));
+            ctx.beginPath();
+            const lerp = (a, b) => a / (a - b);
+            for (let j = 1; j <= ny; j++) {
+                for (let i = 0; i <= nx; i++) cur[i] = val(i, j);
+                for (let i = 0; i < nx; i++) {
+                    const a = prev[i], b = prev[i + 1], c = cur[i + 1], d = cur[i]; // üst-sol, üst-sağ, alt-sağ, alt-sol
+                    if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) continue;
+                    const pts = [];
+                    const x0 = i * cell, y0 = (j - 1) * cell;
+                    if ((a > 0) !== (b > 0)) pts.push([x0 + lerp(a, b) * cell, y0]);
+                    if ((b > 0) !== (c > 0)) pts.push([x0 + cell, y0 + lerp(b, c) * cell]);
+                    if ((d > 0) !== (c > 0)) pts.push([x0 + lerp(d, c) * cell, y0 + cell]);
+                    if ((a > 0) !== (d > 0)) pts.push([x0, y0 + lerp(a, d) * cell]);
+                    if (pts.length === 2) { ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[1][0], pts[1][1]); }
+                    else if (pts.length === 4) { ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[1][0], pts[1][1]); ctx.moveTo(pts[2][0], pts[2][1]); ctx.lineTo(pts[3][0], pts[3][1]); }
+                }
+                const t = prev; prev = cur; cur = t;
             }
             ctx.stroke();
             this._endStroke();

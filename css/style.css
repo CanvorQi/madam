@@ -481,7 +481,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .expr-dot.off { background: transparent; }
 .expr-main { flex: 1; min-width: 0; }
-.expr-msg { font-size: 12.5px; margin-top: 3px; color: var(--ink-soft); word-break: break-word; }
+.expr-msg { font-size: 12.5px; margin-top: 3px; color: var(--ink-soft); word-break: break-word; white-space: pre-line; line-height: 1.5; }
 .expr-msg.err { color: var(--red); }
 .expr-msg.val { color: var(--green); font-weight: 700; font-family: 'Sora', sans-serif; font-size: 14px; }
 .expr-del { border: none; background: none; color: var(--ink-soft); font-size: 20px; width: 30px; height: 38px; border-radius: 8px; flex-shrink: 0; }

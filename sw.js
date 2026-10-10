@@ -4,7 +4,7 @@
  * ilk kullanımda önbelleğe girer. Böylece bir kez açılan uygulama internetsiz de çalışır.
  * Dosyaları değiştirdikten sonra CACHE_NAME sürümünü artır ki kullanıcılar yeni sürümü alsın.
  */
-const CACHE_NAME = "madam-v4";
+const CACHE_NAME = "madam-v5";
 const APP_SHELL = [
     "./",
     "./index.html",

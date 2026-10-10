@@ -524,7 +524,8 @@
     }
 
     /* ---------------- Grafik & hesap sayfası ---------------- */
-    const EXAMPLES = ["x^2", "sin(x)", "a*x^2+b*x+c", "f(x)=x^2-2x", "f(x-3)+1", "2^x", "ln(x)", "[x]", "|x|", "sqrt(1-x^2)", "log(2, 32)", "x = 2"];
+    const EXAMPLES = ["x^2", "sin(x)", "a*x^2+b*x+c", "f(x)=x^2-2x", "f(x-3)+1", "f'(x)", "2^x", "ln(x)", "[x]", "|x|", "log(2, 32)", "x = 2",
+        "(x-1)^2+(y+2)^2=9", "x^2+y^2-4x+6y-3=0", "3x+4y=12", "A=(5,4)", "x^2/9+y^2/4=1"];
     const DEFAULT_GRAPH = { rows: ["f(x) = x^2 - 2x", "f(x - 3) + 1", "sin(pi/6)"], params: {}, pi: false };
 
     function pageGraph() {
@@ -538,6 +539,15 @@
                 <div id="exprList" style="display:flex;flex-direction:column;gap:10px"></div>
                 <button type="button" class="btn small ghost" data-add>＋ Yeni ifade</button>
                 <div id="paramBox" class="param-box" hidden></div>
+                <div id="tanBox" class="param-box" hidden>
+                    <div style="display:flex;align-items:center;gap:8px"><b style="flex:1">📐 Teğet ve türev</b><button type="button" class="expr-del" data-tan-close title="Kapat">×</button></div>
+                    <div class="muted" data-tan-hint style="font-size:13px">Grafikte bir eğriye dokun (ya da tıkla): o noktadaki teğet çizilir.</div>
+                    <div data-tan-ctrl hidden style="display:flex;flex-direction:column;gap:8px">
+                        <div class="param-row"><span class="pn">x₀</span><input type="range" data-tan-x><span class="pv" data-tan-xv></span></div>
+                        <label class="check"><input type="checkbox" data-tan-deriv> f′(x) grafiğini de göster</label>
+                        <div class="readout" data-tan-out style="margin-top:0"></div>
+                    </div>
+                </div>
                 <div>
                     <div class="section-title" style="margin:6px 0 8px">Örnekler (dokun, eklensin)</div>
                     <div class="chip-row" id="exampleRow">${EXAMPLES.map((e) => `<button type="button" class="chip" data-ex="${esc(e)}">${esc(e)}</button>`).join("")}</div>
@@ -558,6 +568,12 @@
                         <tr><td><code>f(x) = …</code></td><td>fonksiyon tanımla, alttaki satırlarda <code>f(x-2)</code> gibi kullan</td></tr>
                         <tr><td><code>a = 2</code></td><td>parametre; a'lı ifadelerde kaydırıcı çıkar</td></tr>
                         <tr><td><code>x = 3</code></td><td>dikey doğru</td></tr>
+                        <tr><td><code>f'(x)</code>, <code>f''(x)</code></td><td>tanımlı f'nin 1. ve 2. türevi</td></tr>
+                        <tr><td><code>(x-1)^2+(y+2)^2=9</code></td><td>çember: merkez ve yarıçap otomatik bulunur</td></tr>
+                        <tr><td><code>x^2+y^2-4x+6y-3=0</code></td><td>genel denklemli çember</td></tr>
+                        <tr><td><code>3x+4y=12</code></td><td>genel denklemli doğru (her türlü x, y denklemi çizilir)</td></tr>
+                        <tr><td><code>A=(5,4)</code></td><td>nokta; çembere göre konumu ve teğetleri hesaplanır</td></tr>
+                        <tr><td><b>f′</b> düğmesi</td><td>teğet aracı: eğriye dokun, teğeti ve eğimi gör</td></tr>
                         <tr><td><code>log(2, 32)</code></td><td>x yoksa sonucu hesaplar → 5</td></tr>
                     </table>
                     <p style="margin:8px 0 0">Ondalık için nokta kullan: <code>2.5</code>. Grafiği sürükle, tekerlek / iki parmakla yakınlaştır, çift tıkla başa dön.</p>
@@ -570,6 +586,7 @@
                         <button class="plot-tool" type="button" data-z="out" title="Uzaklaştır">−</button>
                         <button class="plot-tool" type="button" data-z="home" title="Başa dön">⌂</button>
                         <button class="plot-tool" type="button" data-z="pi" title="x eksenini π cinsinden göster">π</button>
+                        <button class="plot-tool" type="button" data-z="tan" title="Teğet aracı: eğriye dokun">f′</button>
                     </div>
                 </div>
             </div>
@@ -654,6 +671,203 @@
             });
         }
 
+        /* ---------- Analitik geometri yardımcıları ---------- */
+        const G = (v) => MathParser.fmt(v, 3);
+        const near = (u, v, tol) => Math.abs(u - v) <= (tol || 1e-7) * (1 + Math.abs(u) + Math.abs(v));
+        const radText = (r) => {
+            const r2 = r * r;
+            if (Math.abs(r - Math.round(r)) < 1e-9) return G(r);
+            if (Math.abs(r2 - Math.round(r2)) < 1e-9) return `√${Math.round(r2)} ≈ ${G(r)}`;
+            return G(r);
+        };
+        // [[katsayı, "x"], ...] → "2x − 3" gibi okunur ifade
+        function poly(terms) {
+            let out = "";
+            terms.forEach(([v, s]) => {
+                if (Math.abs(v) < 1e-12) return;
+                const c = (s && Math.abs(Math.abs(v) - 1) < 1e-12 ? "" : G(Math.abs(v))) + s;
+                out += out ? (v < 0 ? " − " : " + ") + c : (v < 0 ? "−" : "") + c;
+            });
+            return out || "0";
+        }
+        const sq = (name, c) => (Math.abs(c) < 1e-12 ? `${name}²` : `(${name} ${c > 0 ? "−" : "+"} ${G(Math.abs(c))})²`);
+        const stdCircle = (a, b, r) => `${sq("x", a)} + ${sq("y", b)} = ${G(r * r)}`;
+        const genCircle = (a, b, r) => `${poly([[1, "x²"], [1, "y²"], [-2 * a, "x"], [-2 * b, "y"], [a * a + b * b - r * r, ""]])} = 0`;
+        function lineText(A, B, C) {
+            if (Math.abs(B) < 1e-12) return `dikey doğru x = ${G(-C / A)} (eğim tanımsız)`;
+            const m = -A / B, n = -C / B;
+            return `y = ${poly([[m, "x"], [n, ""]])} · eğim m = ${G(m)}`;
+        }
+        function lineItem(A, B, C, color, dash, width) {
+            if (Math.abs(B) < 1e-12) return { type: "vline", x: -C / A, color, width: width || 2, dash: dash ? [6, 5] : false };
+            return { type: "fn", f: (x) => -(A * x + C) / B, color, width: width || 2, dash: dash ? [6, 5] : false, trace: false };
+        }
+        const circleItem = (a, b, r, color) => ({ type: "param", x: (t) => a + r * Math.cos(t), y: (t) => b + r * Math.sin(t), t0: 0, t1: 2 * Math.PI, color, width: 2.8, steps: 360 });
+
+        // F(x, y)'yi Ax² + Bxy + Cy² + Dx + Ey + F₀ olarak tanımaya çalış
+        function quadFit(F) {
+            const c0 = F(0, 0), fx1 = F(1, 0), fxm = F(-1, 0), fy1 = F(0, 1), fym = F(0, -1);
+            const A = (fx1 + fxm - 2 * c0) / 2, D = (fx1 - fxm) / 2, C = (fy1 + fym - 2 * c0) / 2, E = (fy1 - fym) / 2;
+            const B = (F(1, 1) - F(1, -1) - F(-1, 1) + F(-1, -1)) / 4;
+            if (![c0, A, B, C, D, E].every(isFinite)) return null;
+            const Q = (x, y) => A * x * x + B * x * y + C * y * y + D * x + E * y + c0;
+            const scale = 1 + Math.abs(A) + Math.abs(B) + Math.abs(C) + Math.abs(D) + Math.abs(E) + Math.abs(c0);
+            for (const [x, y] of [[0.7, -1.3], [2.1, 0.4], [-1.7, 2.2], [3.3, -2.9], [-4.1, -3.6]]) {
+                const v = F(x, y);
+                if (!isFinite(v) || Math.abs(v - Q(x, y)) > 1e-7 * (scale + Math.abs(v))) return null;
+            }
+            const z = (v) => Math.abs(v) < 1e-9 * scale;
+            if (z(A) && z(B) && z(C)) return z(D) && z(E) ? null : { kind: "line", A: D, B: E, C: c0 };
+            if (z(B) && near(A, C, 1e-9) && !z(A)) {
+                const a = -D / (2 * A), b = -E / (2 * A), r2 = a * a + b * b - c0 / A;
+                if (r2 > 1e-9 * scale) return { kind: "circle", a, b, r: Math.sqrt(r2) };
+                if (r2 > -1e-9 * scale) return { kind: "pointc", a, b };
+                return { kind: "empty" };
+            }
+            const disc = B * B - 4 * A * C;
+            return { kind: "conic", type: Math.abs(disc) < 1e-9 * scale * scale ? "Parabol" : disc < 0 ? "Elips" : "Hiperbol", disc };
+        }
+        // y = f(x) bir doğru mu? (Ax + By + C = 0 biçiminde döndürür)
+        function asLine(f) {
+            const y0 = f(0), y1 = f(1), ym = f(-1), y3 = f(3.7);
+            if (![y0, y1, ym, y3].every(isFinite)) return null;
+            const m = y1 - y0;
+            if (!near(y0 - ym, m, 1e-9) || !near(y3, y0 + 3.7 * m, 1e-9)) return null;
+            return { A: m, B: -1, C: y0 };
+        }
+        const lineName = (l) => l.r.text.trim();
+        const dot = (x, y) => ({ type: "point", x, y, color: "#0b2a3c", r: 4 });
+
+        function analyzeCircles(circles, lines, points, items, msgs) {
+            circles.forEach((ci, idx) => {
+                const { a, b, rad } = ci, tol = 1e-6 * (1 + rad), out = [];
+                lines.forEach((l) => {
+                    const nrm = l.A * l.A + l.B * l.B, s = l.A * a + l.B * b + l.C, d = Math.abs(s) / Math.sqrt(nrm);
+                    const hx = a - (l.A * s) / nrm, hy = b - (l.B * s) / nrm;
+                    let txt = `↔ ${lineName(l)}: merkeze uzaklık ℓ = ${G(d)}`;
+                    if (d < rad - tol) {
+                        const h = Math.sqrt(rad * rad - d * d), ux = -l.B / Math.sqrt(nrm), uy = l.A / Math.sqrt(nrm);
+                        const p1 = [hx + h * ux, hy + h * uy], p2 = [hx - h * ux, hy - h * uy];
+                        txt += ` < r → iki noktada keser: (${G(p1[0])}, ${G(p1[1])}), (${G(p2[0])}, ${G(p2[1])}) · kiriş = ${G(2 * h)}`;
+                        if (ci.r.visible && l.r.visible) items.push(dot(...p1), dot(...p2));
+                    } else if (Math.abs(d - rad) <= tol) {
+                        txt += ` = r → teğet, değme noktası (${G(hx)}, ${G(hy)})`;
+                        if (ci.r.visible && l.r.visible) items.push(dot(hx, hy));
+                    } else txt += ` > r → kesmez (en kısa uzaklık ${G(d - rad)})`;
+                    out.push(txt);
+                });
+                points.forEach((p) => {
+                    const dx = p.x - a, dy = p.y - b, e = Math.hypot(dx, dy);
+                    let txt = `• ${p.name}: |${p.name.length < 4 ? p.name : "P"}M| = ${G(e)}`;
+                    if (Math.abs(e - rad) <= tol) {
+                        const A = dx, B = dy, C = -A * a - B * b - rad * rad;
+                        txt += ` = r → çember üzerinde; teğet: ${lineText(A, B, C).split(" · ")[0]}`;
+                        if (ci.r.visible && p.r.visible) items.push(lineItem(A, B, C, Plot.COLORS.orange, true));
+                    } else if (e < rad) txt += ` < r → çemberin içinde (teğet çizilemez)`;
+                    else {
+                        const al = Math.acos(rad / e), ph = Math.atan2(dy, dx);
+                        txt += ` > r → dışında; teğet uzunluğu √(|PM|² − r²) = ${G(Math.sqrt(e * e - rad * rad))}`;
+                        if (ci.r.visible && p.r.visible) [ph + al, ph - al].forEach((t) => {
+                            const tx = a + rad * Math.cos(t), ty = b + rad * Math.sin(t);
+                            const A = ty - p.y, B = p.x - tx, C = -(A * p.x + B * p.y);
+                            items.push(lineItem(A, B, C, Plot.COLORS.orange, true), dot(tx, ty));
+                        });
+                    }
+                    out.push(txt);
+                });
+                circles.forEach((cj, j) => {
+                    if (j >= idx) return;
+                    const d = Math.hypot(cj.a - a, cj.b - b), r1 = cj.rad, r2 = rad;
+                    let txt = `○ ${lineName(cj)} ile: merkezler arası d = ${G(d)}`;
+                    if (d < tol && Math.abs(r1 - r2) <= tol) txt += " → aynı çember";
+                    else if (d < tol) txt += " → eş merkezli (kesişmez)";
+                    else if (d > r1 + r2 + tol) txt += ` > r₁ + r₂ → dışarıda, kesişmez`;
+                    else if (Math.abs(d - (r1 + r2)) <= tol) txt += ` = r₁ + r₂ → dıştan teğet`;
+                    else if (d < Math.abs(r1 - r2) - tol) txt += ` < |r₁ − r₂| → biri diğerinin içinde`;
+                    else if (Math.abs(d - Math.abs(r1 - r2)) <= tol) txt += ` = |r₁ − r₂| → içten teğet`;
+                    else {
+                        const aa = (d * d + r1 * r1 - r2 * r2) / (2 * d), h = Math.sqrt(Math.max(0, r1 * r1 - aa * aa));
+                        const ux = (a - cj.a) / d, uy = (b - cj.b) / d, mx = cj.a + aa * ux, my = cj.b + aa * uy;
+                        const p1 = [mx - h * uy, my + h * ux], p2 = [mx + h * uy, my - h * ux];
+                        txt += ` → iki noktada kesişir: (${G(p1[0])}, ${G(p1[1])}), (${G(p2[0])}, ${G(p2[1])})`;
+                        if (ci.r.visible && cj.r.visible) items.push(dot(...p1), dot(...p2));
+                    }
+                    out.push(txt);
+                });
+                if (out.length) msgs[ci.r.id].t += "\n" + out.join("\n");
+            });
+        }
+
+        /* ---------- Teğet aracı ---------- */
+        let fnCurves = {};
+        const tan = { on: false, rowId: null, x0: 0, deriv: false };
+        const tanBox = view.querySelector("#tanBox"), tanBtn = view.querySelector('[data-z="tan"]');
+        const tanX = tanBox.querySelector("[data-tan-x]"), tanXv = tanBox.querySelector("[data-tan-xv]");
+        const tanOut = tanBox.querySelector("[data-tan-out]");
+        // Görünüm genişliğine göre "yuvarlak" adım: 16 birimlik görünümde 0,1
+        const snapStep = () => Math.pow(10, Math.floor(Math.log10((plot.view.xmax - plot.view.xmin) / 50)));
+        const snap = (v, s) => Number((Math.round(v / s) * s).toFixed(10));
+        function setTanRange() {
+            const v = plot.view, s = snapStep();
+            tanX.min = snap(v.xmin, s); tanX.max = snap(v.xmax, s); tanX.step = s;
+            tanX.value = tan.x0;
+        }
+        function drawTangent(items) {
+            const cur = tan.on && tan.rowId !== null ? fnCurves[tan.rowId] : null;
+            tanBox.querySelector("[data-tan-hint]").hidden = !!cur;
+            tanBox.querySelector("[data-tan-ctrl]").hidden = !cur;
+            if (!cur) return;
+            const f = cur.f, x0 = tan.x0, y0 = f(x0);
+            tanXv.textContent = G(x0);
+            if (tan.deriv) {
+                items.push({ type: "fn", f: (x) => { const h = 1e-5 * Math.max(1, Math.abs(x)); return (f(x + h) - f(x - h)) / (2 * h); }, color: cur.color, width: 2, dash: [7, 5], label: "f′(x)", trace: false });
+            }
+            if (!isFinite(y0)) { tanOut.innerHTML = `<span class="bad">x₀ = ${G(x0)} noktasında fonksiyon tanımsız.</span>`; return; }
+            const h = 1e-5 * Math.max(1, Math.abs(x0)), m = (f(x0 + h) - f(x0 - h)) / (2 * h);
+            const hs = 1e-6 * Math.max(1, Math.abs(x0)), dl = (y0 - f(x0 - hs)) / hs, dr = (f(x0 + hs) - y0) / hs;
+            items.push({ type: "point", x: x0, y: y0, color: Plot.COLORS.orange, label: `(${G(x0)}, ${G(y0)})` });
+            if (!isFinite(dl) || !isFinite(dr) || Math.abs(dl - dr) > 1e-3 * (1 + Math.abs(dl) + Math.abs(dr))) {
+                tanOut.innerHTML = `<span class="bad">Bu noktada türev yok:</span> soldan eğim ≈ ${G(dl)}, sağdan eğim ≈ ${G(dr)} — farklı (köşe noktası). Tek bir teğet çizilemez.`;
+                return;
+            }
+            const n = y0 - m * x0;
+            items.push({ type: "fn", f: (x) => y0 + m * (x - x0), color: Plot.COLORS.orange, width: 2.4, trace: false });
+            items.push({ type: "seg", x1: x0, y1: y0, x2: x0 + 1, y2: y0, color: Plot.COLORS.green, dash: [4, 4], width: 2, label: "1", labelOffset: [0, m >= 0 ? 12 : -12] });
+            items.push({ type: "seg", x1: x0 + 1, y1: y0, x2: x0 + 1, y2: y0 + m, color: Plot.COLORS.pink, dash: [4, 4], width: 2, label: `m = ${G(m)}`, labelOffset: [40, 0] });
+            const deg = (Math.atan(m) * 180) / Math.PI;
+            const texN = (v) => G(v).replace("−", "-");
+            const eq = "y = " + poly([[m, "x"], [n, ""]]).replace(/−/g, "-");
+            tanOut.innerHTML = `<b>${esc(cur.text)}</b><br>` +
+                H.tex(`f(${texN(x0)}) = ${texN(y0)},\\quad f'(${texN(x0)}) \\approx ${texN(m)}`) + "<br>" +
+                `Teğet: ${H.tex(eq)}<br>Eğim açısı θ = arctan m ≈ ${G(deg)}° ` +
+                (Math.abs(m) < 1e-6 ? `<span class="good">(yatay teğet: tepe/çukur adayı)</span>` : m > 0 ? `<span class="good">(artan)</span>` : `<span class="bad">(azalan)</span>`);
+        }
+        plot.onTap = (x, y, px, py) => {
+            if (!tan.on) return false;
+            let best = null, bestD = Infinity;
+            Object.keys(fnCurves).forEach((id) => {
+                const yy = fnCurves[id].f(x);
+                if (!isFinite(yy)) return;
+                const d = Math.abs(plot.Y(yy) - py);
+                if (d < bestD) { bestD = d; best = id; }
+            });
+            if (best === null || bestD > 60) { toast("Teğet için bir eğrinin üzerine dokun"); return true; }
+            tan.rowId = Number(best); tan.x0 = snap(x, snapStep());
+            setTanRange();
+            update(true);
+            return true;
+        };
+        tanBtn.addEventListener("click", () => {
+            tan.on = !tan.on;
+            tanBtn.classList.toggle("on", tan.on);
+            tanBox.hidden = !tan.on;
+            if (tan.on) toast("Teğet aracı açık: bir eğriye dokun");
+            update(true);
+        });
+        tanBox.querySelector("[data-tan-close]").addEventListener("click", () => tanBtn.click());
+        tanX.addEventListener("input", () => { tan.x0 = snap(Number(tanX.value), Number(tanX.step)); update(true); });
+        tanBox.querySelector("[data-tan-deriv]").addEventListener("change", (e) => { tan.deriv = e.target.checked; update(true); });
+
         function update(fromSlider) {
             const userFns = {};
             const env = {};
@@ -682,7 +896,14 @@
                 const c = MathParser.classify(r.text);
                 if (c.kind === "param") return;
                 try {
-                    const comp = MathParser.compile(c.body, userFns);
+                    let comp;
+                    if (c.kind === "implicit") {
+                        const L = MathParser.compile(c.lhs, userFns), Rr = MathParser.compile(c.rhs, userFns);
+                        comp = { L, R: Rr, vars: Array.from(new Set([...L.vars, ...Rr.vars])) };
+                    } else if (c.kind === "point") {
+                        const X = MathParser.compile(c.xs, userFns), Y = MathParser.compile(c.ys, userFns);
+                        comp = { X, Y, vars: Array.from(new Set([...X.vars, ...Y.vars])) };
+                    } else comp = MathParser.compile(c.body, userFns);
                     const own = c.kind === "def" ? c.param : "x";
                     comp.vars.forEach((v) => { if (v !== own && v !== "x" && v !== "y") free.add(v); });
                     if (c.kind === "def") {
@@ -702,13 +923,48 @@
             buildParams(shown);
 
             const items = [];
+            const circles = [], lines = [], points = [];
+            fnCurves = {};
             compiled.forEach(({ r, i, c, comp }) => {
                 const color = colorOf(i);
+                if (c.kind === "point") {
+                    const px = comp.X.fn(env), py = comp.Y.fn(env);
+                    const nm = c.name || `(${G(px)}, ${G(py)})`;
+                    msgs[r.id] = { t: `Nokta ${c.name ? c.name : ""}(${G(px)}, ${G(py)})`, c: "" };
+                    if (isFinite(px) && isFinite(py)) {
+                        points.push({ r, x: px, y: py, name: nm, color });
+                        if (r.visible) items.push({ type: "point", x: px, y: py, color, label: c.name || "" });
+                    }
+                    return;
+                }
+                if (c.kind === "implicit") {
+                    const Fxy = (x, y) => { env.x = x; env.y = y; return comp.L.fn(env) - comp.R.fn(env); };
+                    const q = quadFit(Fxy);
+                    if (q && q.kind === "circle") {
+                        circles.push({ r, a: q.a, b: q.b, rad: q.r, color, msg: [] });
+                        msgs[r.id] = { t: `Çember · merkez M(${G(q.a)}, ${G(q.b)}), yarıçap r = ${radText(q.r)}\nStandart: ${stdCircle(q.a, q.b, q.r)}\nGenel: ${genCircle(q.a, q.b, q.r)}`, c: "" };
+                        if (r.visible) items.push(circleItem(q.a, q.b, q.r, color), { type: "point", x: q.a, y: q.b, color, r: 3.5 });
+                    } else if (q && q.kind === "line") {
+                        lines.push({ r, A: q.A, B: q.B, C: q.C, color });
+                        msgs[r.id] = { t: `Doğru · ${lineText(q.A, q.B, q.C)}`, c: "" };
+                        if (r.visible) items.push(lineItem(q.A, q.B, q.C, color, false, 2.8));
+                    } else if (q && q.kind === "pointc") {
+                        msgs[r.id] = { t: `Yarıçap 0: tek nokta (${G(q.a)}, ${G(q.b)})`, c: "" };
+                        if (r.visible) items.push({ type: "point", x: q.a, y: q.b, color });
+                    } else if (q && q.kind === "empty") {
+                        msgs[r.id] = { t: "Bu denklemi sağlayan reel nokta yok (r² < 0)", c: "err" };
+                    } else {
+                        msgs[r.id] = { t: q && q.kind === "conic" ? `${q.type} (ikinci dereceden eğri; B² − 4AC ${q.type === "Parabol" ? "=" : q.type === "Elips" ? "<" : ">"} 0)` : "Kapalı eğri: F(x, y) = 0", c: "" };
+                        if (r.visible) items.push({ type: "implicit", F: Fxy, color });
+                    }
+                    return;
+                }
                 const own = c.kind === "def" ? c.param : "x";
                 const usesX = comp.vars.includes(own);
                 if (c.kind === "vline") {
                     const v = comp.fn(env);
                     msgs[r.id] = msgs[r.id] || { t: `dikey doğru x = ${MathParser.fmt(v)}`, c: "" };
+                    lines.push({ r, A: 1, B: 0, C: -v, color });
                     if (r.visible) items.push({ type: "vline", x: v, color, width: 2.4, dash: false });
                     return;
                 }
@@ -721,7 +977,13 @@
                 const f = (x) => { env[own] = x; return comp.fn(env); };
                 if (r.visible) items.push({ type: "fn", f, color, width: 2.8 });
                 if (!msgs[r.id]) msgs[r.id] = { t: "", c: "" };
+                if (r.visible) fnCurves[r.id] = { f, color, text: r.text.trim() };
+                const ln = c.kind === "expr" ? asLine(f) : null;
+                if (ln) lines.push({ r, A: ln.A, B: ln.B, C: ln.C, color });
             });
+
+            analyzeCircles(circles, lines, points, items, msgs);
+            drawTangent(items);
 
             rows.forEach((r) => {
                 const node = list.querySelector(`[data-id="${r.id}"]`);

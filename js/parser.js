@@ -68,7 +68,7 @@
             .replace(/²/g, "^2").replace(/³/g, "^3").replace(/¹/g, "^1")
             .replace(/[·×∙⋅]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-")
             .replace(/π/g, "pi").replace(/√/g, "sqrt").replace(/∛/g, "cbrt")
-            .replace(/⟦/g, "[").replace(/⟧/g, "]").replace(/θ/g, "t");
+            .replace(/⟦/g, "[").replace(/⟧/g, "]").replace(/θ/g, "t").replace(/[′’]/g, "'");
     }
 
     class ParseError extends Error {}
@@ -114,7 +114,7 @@
                 i = j;
                 continue;
             }
-            if ("+-*/^(),|[]_!".includes(ch)) {
+            if ("+-*/^(),|[]_!'".includes(ch)) {
                 out.push({ t: "op", v: ch });
                 i++;
                 continue;
@@ -153,6 +153,7 @@
             const e = this.parseExpr();
             if (this.i < this.tk.length) {
                 const t = this.peek();
+                if (t.t === "op" && t.v === "'") throw new ParseError("Türev işareti (') yalnızca tanımlı bir fonksiyondan sonra kullanılır: önce f(x) = … yaz, sonra f'(x)");
                 throw new ParseError(t.t === "op" ? `Beklenmeyen "${t.v}"` : "İfadenin sonu anlaşılamadı");
             }
             return e;
@@ -220,6 +221,7 @@
                     this.expectOp("|", "Mutlak değer kapanmadı: \"|\" eksik");
                     return (env) => Math.abs(e(env));
                 }
+                if (t.v === "'") throw new ParseError("Türev işareti (') yalnızca tanımlı bir fonksiyondan sonra kullanılır: önce f(x) = … yaz, sonra f'(x)");
                 if (t.v === "[") { const e = this.parseExpr(); this.expectOp("]", "Tam kısım kapanmadı: \"]\" eksik"); return (env) => Math.floor(e(env) + 1e-12); }
                 throw new ParseError(`Beklenmeyen "${t.v}"`);
             }
@@ -276,18 +278,31 @@
         parseUserCall(name) {
             const uf = this.userFns[name];
             this.usedFns.add(name);
+            // f'(x), f''(x): sayısal türev
+            let order = 0;
+            while (this.isOp("'")) { this.i++; order++; }
+            if (order > 2) throw new ParseError("En fazla ikinci türev (f'') desteklenir");
             let power = null;
             if (this.isOp("^")) { this.i++; power = this.parsePostfix(); }
             const args = this.parseArgsOrImplicit();
             const a0 = args[0], pname = uf.param, body = uf.fn;
             uf.vars.forEach((v) => { if (v !== pname) this.vars.add(v); });
-            const call = (env) => {
-                const arg = a0(env);
+            const at = (env, t) => {
                 const saved = env[pname];
-                env[pname] = arg;
+                env[pname] = t;
                 const r = body(env);
                 env[pname] = saved;
                 return r;
+            };
+            let call;
+            if (order === 0) call = (env) => at(env, a0(env));
+            else if (order === 1) call = (env) => {
+                const t = a0(env), h = 1e-5 * Math.max(1, Math.abs(t));
+                return (at(env, t + h) - at(env, t - h)) / (2 * h);
+            };
+            else call = (env) => {
+                const t = a0(env), h = 1e-4 * Math.max(1, Math.abs(t));
+                return (at(env, t + h) - 2 * at(env, t) + at(env, t - h)) / (h * h);
             };
             if (power) { const p = power; return (env) => powReal(call(env), p(env)); }
             return call;
@@ -319,16 +334,38 @@
      *   "a = 2"       -> { kind: "param", name: "a", body: "2" }
      *   "2x+1"        -> { kind: "expr", body: "2x+1" }
      */
+    // "(a, b)" içindeki en dıştaki virgülden böler; yoksa null
+    function splitPair(inner) {
+        let depth = 0;
+        for (let i = 0; i < inner.length; i++) {
+            const ch = inner[i];
+            if (ch === "(" || ch === "[") depth++;
+            else if (ch === ")" || ch === "]") depth--;
+            else if (ch === "," && depth === 0) return [inner.slice(0, i), inner.slice(i + 1)];
+        }
+        return null;
+    }
+    const hasY = (s) => /y/.test(s);
+
     function classify(line) {
         const s = normalize(line).trim();
         let m = s.match(/^([a-zA-Z])\s*\(\s*([a-zA-Z])\s*\)\s*=(.*)$/);
         if (m) return { kind: "def", name: m[1], param: m[2], body: m[3] };
+        // Nokta: "A = (2, 3)" veya "(2, 3)"
+        m = s.match(/^(?:([A-Z][A-Za-z0-9]*)\s*=\s*)?\((.*)\)$/);
+        if (m) {
+            const pair = splitPair(m[2]);
+            if (pair) return { kind: "point", name: m[1] || "", xs: pair[0], ys: pair[1] };
+        }
         m = s.match(/^y\s*=(.*)$/);
-        if (m) return { kind: "expr", body: m[1] };
+        if (m && !hasY(m[1])) return { kind: "expr", body: m[1] };
         m = s.match(/^x\s*=(.*)$/);
-        if (m) return { kind: "vline", body: m[1] };
+        if (m && !hasY(m[1])) return { kind: "vline", body: m[1] };
         m = s.match(/^([a-wzA-Z])\s*=\s*([-+]?[0-9.]+)\s*$/);
         if (m) return { kind: "param", name: m[1], body: m[2] };
+        // Kapalı denklem: "x^2 + y^2 = 9", "3x + 4y = 12"
+        const eq = s.split("=");
+        if (eq.length === 2 && eq[0].trim() && eq[1].trim()) return { kind: "implicit", lhs: eq[0], rhs: eq[1] };
         return { kind: "expr", body: s };
     }
 
