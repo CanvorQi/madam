@@ -1037,7 +1037,7 @@
         chapters: [
             { no: 0, title: "Önbilgiler", sub: "6 alt konu · 18 ders", id: "onbilgiler" },
             { no: 1, title: "Fonksiyonlar", sub: "7 alt konu · 29 ders", id: "fonksiyonlar" },
-            { no: 2, title: "Limit ve Süreklilik", sub: "Limit, sağ-sol limit, süreklilik" },
+            { no: 2, title: "Limit ve Süreklilik", sub: "5 alt konu · 12 ders", id: "limit" },
             { no: 3, title: "Türev", sub: "Türev kavramı ve kuralları" },
             { no: 4, title: "Türevin Uygulamaları", sub: "Maksimum-minimum, eğri çizimi" },
             { no: 5, title: "Belirsiz İntegraller", sub: "İntegral alma yöntemleri" },

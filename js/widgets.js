@@ -1049,6 +1049,125 @@
         draw();
     };
 
+    /* ---------------- Limit: soldan / sağdan yaklaşma tablosu ---------------- */
+    // presets: [{ tex, expr, a, view, fa (a'daki değer, yoksa undefined), note }]
+    W.approach = function (root, o) {
+        const presets = o.presets;
+        let pi = 0, f = MathParser.fx(presets[0].expr);
+        chips(root, presets.map((p) => tex(p.tex)), 0, (i) => { pi = i; f = MathParser.fx(presets[i].expr); plot.setView(presets[i].view); render(); });
+        const plot = makePlot(root, { view: presets[0].view, height: 290, exprs: () => [presets[pi].expr] });
+        plot.canvas.parentElement.style.marginTop = "12px";
+        const ctrls = el(`<div class="controls"></div>`);
+        root.appendChild(ctrls);
+        const sh = slider(ctrls, { label: "a'ya uzaklık h", min: 0, max: 4, step: 1, value: 0, format: (v) => (v === 0 ? tex("h = 1") : tex(`h = 10^{-${v}} = ${fmt(Math.pow(10, -v), 5)}`)) }, render);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        const val = (x) => { const y = f(x); return isFinite(y) ? y : NaN; };
+        function render() {
+            const p = presets[pi], a = p.a, h = Math.pow(10, -sh.get());
+            const yl = val(a - h), yr = val(a + h);
+            const items = [
+                { type: "fn", f, color: C.blue, width: 3, label: p.label },
+                { type: "vline", x: a, color: C.gray, width: 1.2 },
+                { type: "point", x: a - h, y: yl, color: C.pink, label: "soldan" , labelPos: "nw" },
+                { type: "point", x: a + h, y: yr, color: C.green, label: "sağdan" },
+            ];
+            (p.holes || []).forEach(([x, y]) => items.push({ type: "point", x, y, color: C.blue, open: true }));
+            (p.dots || []).forEach(([x, y]) => items.push({ type: "point", x, y, color: C.blue }));
+            plot.setItems(items);
+            const rows = [0, 1, 2, 3, 4].map((k) => {
+                const hh = Math.pow(10, -k);
+                return `<tr><td>${fmt(a - hh, 5)}</td><td>${fmt(val(a - hh), 5)}</td><td>${fmt(a + hh, 5)}</td><td>${fmt(val(a + hh), 5)}</td></tr>`;
+            }).join("");
+            readout.innerHTML = `<div class="table-wrap"><table class="mtable"><tr><th style="color:${C.pink}">x → ${fmt(a)}⁻</th><th>f(x)</th><th style="color:${C.green}">x → ${fmt(a)}⁺</th><th>f(x)</th></tr>${rows}</table></div>
+                <div style="margin-top:8px">${p.note}</div>`;
+        }
+        render();
+    };
+
+    /* ---------------- Limit: ε–δ bandı ---------------- */
+    W.epsdelta = function (root, o) {
+        const presets = o.presets;
+        let pi = 0, f = MathParser.fx(presets[0].expr);
+        chips(root, presets.map((p) => tex(p.tex)), 0, (i) => { pi = i; f = MathParser.fx(presets[i].expr); plot.setView(presets[i].view); render(); });
+        const plot = makePlot(root, { view: presets[0].view, height: 300 });
+        plot.canvas.parentElement.style.marginTop = "12px";
+        const ctrls = el(`<div class="controls"></div>`);
+        root.appendChild(ctrls);
+        const se = slider(ctrls, { label: "ε (dikey tolerans)", min: 0.05, max: 1.5, step: 0.05, value: 1, format: (v) => `ε = ${fmt(v)}` }, render);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        // a'nın etrafında |f(x) − L| < ε olan en büyük simetrik δ (sayısal)
+        function maxDelta(a, L, eps) {
+            const N = 4000, R = 6;
+            let d = R;
+            for (let i = 1; i <= N; i++) {
+                const t = (R * i) / N;
+                for (const x of [a - t, a + t]) {
+                    const y = f(x);
+                    if (!isFinite(y) || Math.abs(y - L) >= eps) { d = Math.min(d, t - R / N); }
+                }
+                if (d < t) break;
+            }
+            return Math.max(d, 0);
+        }
+        function render() {
+            const p = presets[pi], a = p.a, L = p.L, eps = se.get(), d = maxDelta(a, L, eps);
+            plot.setItems([
+                { type: "shadeX", a: a - d, b: a + d, color: "rgba(31,169,87,.16)" },
+                { type: "hline", y: L + eps, color: C.orange, width: 1.6, label: `L + ε` },
+                { type: "hline", y: L - eps, color: C.orange, width: 1.6, label: `L − ε` },
+                { type: "fn", f, color: C.blue, width: 3 },
+                { type: "vline", x: a - d, color: C.green, width: 1.6, dash: [5, 4] },
+                { type: "vline", x: a + d, color: C.green, width: 1.6, dash: [5, 4] },
+                { type: "point", x: a, y: L, color: C.pink, open: !!p.hole, label: `(${fmt(a)}, ${fmt(L)})` },
+            ]);
+            readout.innerHTML = `Turuncu bant: ${tex(`|f(x) - ${texNum(L)}| < ${texNum(eps)}`)}. Yeşil bant: ${tex(`0 < |x - ${texNum(a)}| < \\delta`)}.<br>` +
+                `Bu ε için en büyük δ ≈ <b>${fmt(d, 4)}</b>${p.rule ? ` &nbsp;(formül: ${tex(p.rule(eps))})` : ""}.<br>` +
+                `<span class="muted">ε'u küçült: δ de küçülür ama <b>her ε için bir δ bulunabiliyorsa</b> limit ${tex(texNum(L))}'dir.</span>`;
+        }
+        render();
+    };
+
+    /* ---------------- Bolzano: ikiye bölme ile kök arama ---------------- */
+    W.bisection = function (root, o) {
+        const presets = o.presets;
+        let pi = 0, f, lo, hi, steps;
+        chips(root, presets.map((p) => tex(p.tex)), 0, (i) => { pi = i; reset(); });
+        const plot = makePlot(root, { view: presets[0].view, height: 280 });
+        plot.canvas.parentElement.style.marginTop = "12px";
+        const actions = el(`<div class="ex-actions"><button type="button" class="btn small">✂️ Aralığı ikiye böl</button><button type="button" class="btn small ghost">Baştan</button></div>`);
+        root.appendChild(actions);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        actions.children[0].addEventListener("click", () => {
+            const m = (lo + hi) / 2, fm = f(m);
+            steps.push(`[${fmt(lo, 5)}, ${fmt(hi, 5)}] → orta ${fmt(m, 5)}, f = ${fmt(fm, 4)}`);
+            if (Math.sign(fm) === Math.sign(f(lo))) lo = m; else hi = m;
+            render();
+        });
+        actions.children[1].addEventListener("click", reset);
+        function reset() {
+            const p = presets[pi];
+            f = MathParser.fx(p.expr); lo = p.I[0]; hi = p.I[1]; steps = [];
+            plot.setView(p.view);
+            render();
+        }
+        function render() {
+            const p = presets[pi], fa = f(lo), fb = f(hi);
+            plot.setItems([
+                { type: "shadeX", a: lo, b: hi },
+                { type: "fn", f, color: C.blue, width: 3 },
+                { type: "point", x: lo, y: fa, color: fa < 0 ? C.red : C.green, label: `f(${fmt(lo, 4)}) ${fa < 0 ? "< 0" : "> 0"}`, labelPos: "nw" },
+                { type: "point", x: hi, y: fb, color: fb < 0 ? C.red : C.green, label: `f(${fmt(hi, 4)}) ${fb < 0 ? "< 0" : "> 0"}` },
+            ]);
+            readout.innerHTML = `${tex(`f(${texNum(lo, 5)})\\cdot f(${texNum(hi, 5)}) < 0`)} → bu aralıkta en az bir kök var (Bolzano).<br>` +
+                `Aralık boyu: <b>${fmt(hi - lo, 6)}</b> · kök ≈ <b>${fmt((lo + hi) / 2, 6)}</b>` +
+                (steps.length ? `<div class="muted" style="font-size:13px;margin-top:6px">${steps.slice(-5).map((s, i) => `${steps.length - Math.min(5, steps.length) + i + 1}. ${s}`).join("<br>")}</div>` : `<br><span class="muted">Düğmeye bas: her adımda işaret değişen yarıyı tutarız, aralık yarıya iner.</span>`);
+        }
+        reset();
+    };
+
     W._helpers = { el, tex, texNum, fmt, makePlot, slider, chips, exactVal, radTex };
     global.Widgets = W;
 })(window);

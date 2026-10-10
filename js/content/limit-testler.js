@@ -1,0 +1,302 @@
+/*
+ * Bölüm 2 - Limit ve Süreklilik: testler + kitap problemlerinin çözümleri (s. 97-99, 108-109, 110-111).
+ */
+(function (global) {
+    "use strict";
+
+    const R = String.raw;
+    const mc = (q, options, correct, why) => ({ q, options, correct, why });
+    const part = (l, q, a, s, graph) => ({ l, q, a, s: s || [], graph });
+
+    const tests = [
+        {
+            id: "test-2-1", title: "Test · Limit Hesaplama", sections: ["2.1", "2.2"],
+            desc: "Polinom ve rasyonel limitler, 0/0 sadeleştirme, sağ-sol limit, sonsuzda limit.",
+            questions: [
+                mc(R`$\lim\limits_{x\to2}(x^3 - 3x + 1)$ kaçtır?`, ["3", "1", "7", "−1"], 0, R`Polinom: $8 - 6 + 1 = 3$.`),
+                mc(R`$\lim\limits_{x\to4}\dfrac{x^2 - 16}{x - 4}$ kaçtır?`, ["8", "0", "4", "Yoktur"], 0, R`$(x - 4)(x + 4)/(x - 4) = x + 4 \to 8$.`),
+                mc(R`$\lim\limits_{x\to0}\dfrac{\sqrt{x + 9} - 3}{x}$ kaçtır?`, [R`$\frac16$`, R`$\frac13$`, "0", "6"], 0, R`Eşlenik: $\frac{1}{\sqrt{x+9} + 3} \to \frac16$.`),
+                mc(R`$\lim\limits_{x\to-1}\dfrac{x + 1}{x^2 - x - 2}$ kaçtır?`, [R`$-\frac13$`, R`$\frac13$`, "0", "Yoktur"], 0, R`$x^2 - x - 2 = (x - 2)(x + 1)$ → $\frac{1}{x - 2} \to -\frac13$.`),
+                mc(R`$\lim\limits_{x\to0^+}\dfrac{|x|}{x}$ kaçtır?`, ["1", "−1", "0", "Yoktur"], 0, R`$x > 0$ için $|x| = x$.`),
+                mc(R`$\lim\limits_{x\to2}\llbracket x \rrbracket$ için hangisi doğrudur?`, ["Yoktur", "2", "1", R`$\frac32$`], 0, R`Soldan 1, sağdan 2.`),
+                mc(R`$\lim\limits_{x\to\infty}\dfrac{4x^2 - 1}{2x^2 + 3x}$ kaçtır?`, ["2", "4", "0", R`$\infty$`], 0, R`Dereceler eşit: $\frac42$.`),
+                mc(R`$\lim\limits_{x\to\infty}\dfrac{x + 5}{x^2 + 1}$ kaçtır?`, ["0", "1", R`$\infty$`, "5"], 0, R`Paydanın derecesi büyük.`),
+                mc(R`$\lim\limits_{x\to1^-}\dfrac{1}{x - 1}$ nedir?`, [R`$-\infty$`, R`$+\infty$`, "0", "1"], 0, R`Payda küçük negatif.`),
+                mc(R`$\lim\limits_{x\to\infty}\left(\sqrt{x^2 + 8x - 3} - x\right)$ kaçtır?`, ["4", "8", "0", R`$\infty$`], 0, R`Eşlenik: $\frac{8x - 3}{\sqrt{x^2+8x-3} + x} \to \frac82$.`),
+            ],
+        },
+        {
+            id: "test-2-2", title: "Test · Trigonometrik ve Üstel Limitler", sections: ["2.3"],
+            desc: "sin x / x, 1 − cos x, sandviç, (1 + 1/x)^x → e.",
+            questions: [
+                mc(R`$\lim\limits_{x\to0}\dfrac{\sin5x}{x}$ kaçtır?`, ["5", "1", "0", R`$\frac15$`], 0, R`$5\cdot\frac{\sin5x}{5x} \to 5$.`),
+                mc(R`$\lim\limits_{x\to0}\dfrac{\sin2x}{\sin7x}$ kaçtır?`, [R`$\frac27$`, R`$\frac72$`, "1", "0"], 0, R`$\frac ab$ kuralı.`),
+                mc(R`$\lim\limits_{x\to0}\dfrac{1 - \cos x}{x^2}$ kaçtır?`, [R`$\frac12$`, "1", "0", "2"], 0, R`$1 - \cos x = 2\sin^2\frac x2$ → $2\cdot\frac14$.`),
+                mc(R`$\lim\limits_{x\to0}\dfrac{\tan x}{x}$ kaçtır?`, ["1", "0", R`$\infty$`, "Yoktur"], 0, R`$\frac{\sin x}{x}\cdot\frac{1}{\cos x}$.`),
+                mc(R`$\lim\limits_{x\to\infty} x\sin\dfrac2x$ kaçtır?`, ["2", "0", "1", R`$\infty$`], 0, R`$\theta = \frac2x \to 0$: $\frac{2\sin\theta}{\theta} \to 2$.`),
+                mc(R`$\lim\limits_{x\to0} x^2\sin\dfrac1x$ kaçtır?`, ["0", "1", "Yoktur", R`$\infty$`], 0, R`Sandviç: $-x^2 \le \ldots \le x^2$.`),
+                mc(R`$\lim\limits_{x\to\infty}\left(1 + \dfrac1x\right)^x$ kaçtır?`, ["e", "1", R`$\infty$`, "0"], 0, R`Tanım gereği $e$.`),
+                mc(R`$\lim\limits_{x\to\infty}\left(1 + \dfrac3x\right)^{2x}$ kaçtır?`, [R`$e^6$`, R`$e^3$`, R`$e^{3/2}$`, "1"], 0, R`$uv = \frac3x\cdot2x = 6$.`),
+                mc(R`$\lim\limits_{x\to0}(1 + 2x)^{1/x}$ kaçtır?`, [R`$e^2$`, "e", "1", R`$\sqrt e$`], 0, R`$uv = 2x\cdot\frac1x = 2$.`),
+                mc(R`$\lim\limits_{x\to0}\dfrac{\sin^3x}{x^3}$ kaçtır?`, ["1", "3", "0", R`$\frac13$`], 0, R`$\left(\frac{\sin x}{x}\right)^3 \to 1$.`),
+            ],
+        },
+        {
+            id: "test-2-3", title: "Test · Süreklilik", sections: ["2.4", "2.5"],
+            desc: "Süreklilik şartları, süreksizlik türleri, parametre bulma, Bolzano, ekstremum.",
+            questions: [
+                mc(R`$f(x) = \dfrac{x + 2}{x^2 - 9}$ hangi noktalarda süreksizdir?`, [R`$x = \pm3$`, R`$x = -2$`, R`$x = 3$`, "Hiçbir yerde"], 0, R`Paydanın sıfırları.`),
+                mc(R`$f(x) = \begin{cases} x^2 - 1, & x < 3 \\ 2ax, & x \ge 3\end{cases}$ her yerde sürekli ise $a$ kaçtır?`, [R`$\frac43$`, "1", "8", R`$\frac34$`], 0, R`$8 = 6a$.`),
+                mc(R`$\dfrac{x^2 - 4}{x - 2}$ fonksiyonunun $x = 2$'deki süreksizliği hangi türdendir?`, ["Kaldırılabilir", "Sıçrama", "Sonsuz", "Süreklidir"], 0, R`Limit 4 var, $f(2)$ tanımsız.`),
+                mc(R`$\dfrac{|x|}{x}$ fonksiyonunun $x = 0$'daki sıçrama miktarı nedir?`, ["2", "1", "0", R`$\infty$`], 0, R`$|1 - (-1)|$.`),
+                mc(R`$\dfrac{1}{(x - 2)^2}$ fonksiyonunun $x = 2$'deki süreksizliği hangi türdendir?`, ["Sonsuz", "Sıçrama", "Kaldırılabilir", "Süreklidir"], 0, R`$+\infty$'a gider.`),
+                mc(R`$f(x) = x^3 - 4x + 1$ için hangi aralıkta kesinlikle bir kök vardır?`, [R`$(0, 1)$`, R`$(1, 1{,}5)$`, R`$(-1, 0)$`, R`$(2, 3)$`], 0, R`$f(0) = 1$, $f(1) = -2$: zıt işaret.`),
+                mc("Bolzano teoreminin şartlarından hangisi gereklidir?", ["f'nin [a, b]'de sürekli olması", "f'nin artan olması", "f(a) = 0 olması", "f'nin polinom olması"], 0, R`Süreklilik + uçlarda zıt işaret.`),
+                mc(R`$\sin x$ fonksiyonu için hangisi doğrudur?`, ["Her yerde süreklidir", "Yalnızca [0, π]'de süreklidir", "0'da süreksizdir", "Parçalı süreklidir"], 0, R`$|\sin x - \sin a| \le |x - a|$.`),
+                mc(R`$f(x) = x^2$ fonksiyonunun $[-3, 1]$'deki mutlak minimum ve maksimum değerleri nedir?`, ["0 ve 9", "1 ve 9", "0 ve 1", "−3 ve 1"], 0, R`$f(0) = 0$ en küçük; uçlar $f(-3) = 9$, $f(1) = 1$.`),
+                mc(R`$f(x) = \begin{cases} 2\cos x, & x < 0 \\ a\cos x + b, & 0 \le x \le \pi \\ -\sin x, & x > \pi\end{cases}$ sürekli ise $a + b$ kaçtır?`, ["2", "1", "0", "4"], 0, R`$a + b = 2$ ve $-a + b = 0$ → $a = b = 1$.`),
+            ],
+        },
+    ];
+
+    const problemSets = [
+        /* ------------------------- 2.1–2.3 ------------------------- */
+        {
+            id: "problemler-2-3", title: "Problemler · 2.1–2.3 Limit", page: "97–99", sections: ["2.1", "2.2", "2.3"],
+            problems: [
+                { no: 1, q: R`$\varepsilon$–$\delta$ yöntemiyle aşağıdaki eşitliklerin doğruluğunu gösteriniz.`, parts: [
+                    part("a", R`$\lim\limits_{x\to1}(2x + 3) = 5$`, R`$\delta = \frac\varepsilon2$`, [R`$|2x + 3 - 5| = 2|x - 1| < \varepsilon \iff |x - 1| < \frac\varepsilon2$.`]),
+                    part("b", R`$\lim\limits_{x\to1}(x^2 + 3x) = 4$`, R`$\delta = \min\{1, \frac\varepsilon6\}$`, [R`$|x^2 + 3x - 4| = |x + 4||x - 1|$; $|x - 1| < 1 \Rightarrow |x + 4| < 6$.`]),
+                    part("c", R`$\lim\limits_{x\to16}\sqrt{x - 7} = 3$`, R`$\delta = \min\{9, 3\varepsilon\}$`, [R`$|\sqrt{x - 7} - 3| = \frac{|x - 16|}{\sqrt{x - 7} + 3} \le \frac{|x - 16|}{3}$.`, R`$|x - 16| < 9$ kökün tanımlı kalmasını ($x > 7$) sağlar.`]),
+                    part("d", R`$\lim\limits_{x\to0}\dfrac{x^3 + x}{x} = 1$`, R`$\delta = \sqrt\varepsilon$`, [R`$x \ne 0$ için ifade $x^2 + 1$: $|x^2| < \varepsilon \iff |x| < \sqrt\varepsilon$.`]),
+                ] },
+                { no: 2, q: R`Aşağıda verilen $f(x)$, $L$, $\varepsilon$ ve $a$ için öyle bir $\delta > 0$ bulunuz ki $0 < |x - a| < \delta$ için $|f(x) - L| < \varepsilon$ kalsın.`, note: R`(a)'da kitapta $a = 12$ basılmış; $5\cdot12 = 60 \neq 10$ olduğundan $a = 2$ kastedilmiştir.`, parts: [
+                    part("a", R`$f(x) = 5x,\ L = 10,\ a = 2,\ \varepsilon = 0{,}01$`, R`$\delta = 0{,}002$`, [R`$5|x - 2| < 0{,}01$.`]),
+                    part("b", R`$f(x) = x^2,\ L = 4,\ a = 2,\ \varepsilon = 1$`, R`$\delta = \sqrt5 - 2 \approx 0{,}236$`, [R`$3 < x^2 < 5 \Rightarrow \sqrt3 < x < \sqrt5$.`, R`$\min\{2 - \sqrt3, \sqrt5 - 2\} = \min\{0{,}268;\ 0{,}236\}$.`]),
+                    part("c", R`$f(x) = x^3,\ L = -1,\ a = -1,\ \varepsilon = 0{,}1$`, R`$\delta = \sqrt[3]{1{,}1} - 1 \approx 0{,}032$`, [R`$-1{,}1 < x^3 < -0{,}9 \Rightarrow -\sqrt[3]{1{,}1} < x < -\sqrt[3]{0{,}9}$.`, R`$-1$'e uzaklıklar $0{,}0323$ ve $0{,}0345$: küçüğü.`]),
+                    part("d", R`$f(x) = \dfrac{3x^2 + 8x - 3}{x + 3},\ L = -10,\ a = -3,\ \varepsilon = 0{,}15$`, R`$\delta = 0{,}05$`, [R`$x \ne -3$ için $f(x) = \frac{(3x - 1)(x + 3)}{x + 3} = 3x - 1$; $|3x + 9| < 0{,}15$.`]),
+                    part("e", R`$f(x) = x^2\sin x,\ L = 0,\ a = 0,\ \varepsilon = 0{,}5$`, R`$\delta = 0{,}7$ (yeter)`, [R`$|x^2\sin x| \le x^2 < 0{,}5$ için $|x| < \sqrt{0{,}5} \approx 0{,}707$.`]),
+                    part("f", R`$f(x) = \dfrac{x^3 - 1}{x - 1},\ L = 3,\ a = 1,\ \varepsilon = 0{,}05$`, R`$\delta = 0{,}0125$`, [R`$f = x^2 + x + 1$, $|f - 3| = |x - 1||x + 2|$; $|x - 1| < 1 \Rightarrow |x + 2| < 4$.`, R`$\delta = \min\{1, \frac{0{,}05}{4}\}$.`]),
+                ] },
+                { no: 3, q: "Aşağıdaki limitleri hesaplayınız.", parts: [
+                    part("a", R`$\lim\limits_{x\to1^+}\dfrac{\llbracket x \rrbracket}{x}$`, "1", [R`1'in sağında $\llbracket x \rrbracket = 1$.`]),
+                    part("b", R`$\lim\limits_{x\to0^+}\dfrac{|x|}{\sqrt x}$`, "0", [R`$\frac{x}{\sqrt x} = \sqrt x$.`]),
+                    part("c", R`$\lim\limits_{x\to0^-}\dfrac{\llbracket x \rrbracket}{x}$`, R`$+\infty$`, [R`0'ın solunda $\llbracket x \rrbracket = -1$: $\frac{-1}{x}$, $x$ küçük negatif.`]),
+                    part("ç", R`$\lim\limits_{x\to2^-}(x - \sqrt{4 - 2x})$`, "2", [R`$\sqrt{4 - 4} = 0$.`]),
+                    part("d", R`$\lim\limits_{x\to2^+}\dfrac{x^2 - 4}{x - 2}$`, "4"),
+                    part("e", R`$\lim\limits_{x\to0}\sqrt{x\cos x}$`, R`0 (yalnızca sağdan)`, [R`$x < 0$ için kök içi negatif: tanımsız. Tanım kümesine göre sağ limit 0.`]),
+                    part("f", R`$\lim\limits_{x\to0^-}\sqrt{-x^2\sin3x}$`, "0", [R`$x < 0$ iken $\sin3x < 0$: kök içi pozitif ve 0'a gider.`]),
+                    part("g", R`$\lim\limits_{x\to0^+}\dfrac{5 + \sqrt{1 + x^2}}{\sqrt x}$`, R`$+\infty$`, [R`Pay 6'ya, payda $0^+$'a gider.`]),
+                    part("ğ", R`$\lim\limits_{x\to0^-}\dfrac{\sqrt{1 + x} - \sqrt{1 - x}}{x}$`, "1", [R`Eşlenik: $\frac{2x}{x(\sqrt{1+x} + \sqrt{1-x})} \to \frac22$.`]),
+                    part("h", R`$\lim\limits_{x\to3^-}\left(\dfrac{1}{x - 3} - \dfrac{6}{x^2 - 9}\right)$`, R`$\frac16$`, [R`Ortak payda: $\frac{x + 3 - 6}{x^2 - 9} = \frac{1}{x + 3}$.`]),
+                    part("ı", R`$\lim\limits_{x\to3^+}\dfrac{\sqrt{x^2 - 6x + 9}}{x - 3}$`, "1", [R`$\sqrt{(x - 3)^2} = |x - 3| = x - 3$ ($x > 3$).`]),
+                    part("i", R`$\lim\limits_{x\to0^-}\dfrac{x}{1 + |x|}$`, "0"),
+                    part("j", R`$\lim\limits_{x\to0^+}\dfrac{\llbracket\sin x\rrbracket}{\sin x}$`, "0", [R`$0 < \sin x < 1$: $\llbracket\sin x\rrbracket = 0$.`]),
+                    part("k", R`$\lim\limits_{x\to3^+}\dfrac{\llbracket x^2 \rrbracket - 9}{x - 3}$`, "0", [R`3'ün hemen sağında $9 < x^2 < 10$: $\llbracket x^2 \rrbracket = 9$, pay 0.`]),
+                ] },
+                { no: 4, q: R`$n$ bir tam sayı olmak üzere aşağıdaki $f$ fonksiyonları için $\lim\limits_{x\to n^+}f(x)$ ve $\lim\limits_{x\to n^-}f(x)$ limitlerini hesaplayınız.`, parts: [
+                    part("a", R`$f(x) = \begin{cases} 0, & x \in \mathbb{Z} \\ x, & x \notin \mathbb{Z}\end{cases}$`, R`İkisi de $n$`, [R`Yaklaşırken tam sayı olmayan $x$'ler kullanılır.`]),
+                    part("b", R`$f(x) = \begin{cases} 2 + (-1)^x, & x \in \mathbb{Z} \\ 2, & x \notin \mathbb{Z}\end{cases}$`, R`İkisi de 2`),
+                    part("c", R`$f(x) = (-1)^{\llbracket x \rrbracket}$`, R`Sağ: $(-1)^n$, sol: $(-1)^{n-1} = -(-1)^n$`, [R`Sağda $\llbracket x \rrbracket = n$, solda $n - 1$. Limit yok.`]),
+                    part("ç", R`$f(x) = 1 + \llbracket x \rrbracket - x$`, R`Sağ: 1, sol: 0`, [R`Sağ: $1 + n - n$; sol: $1 + (n - 1) - n$.`]),
+                    part("d", R`$f(x) = \llbracket\frac x2\rrbracket$`, R`$n$ çift: sağ $\frac n2$, sol $\frac n2 - 1$; $n$ tek: ikisi de $\frac{n-1}{2}$`, [R`$n$ tek ise $\frac n2$ tam sayı değil, basamak ortası: limit var.`]),
+                    part("e", R`$f(x) = x - \llbracket x \rrbracket$`, R`Sağ: 0, sol: 1`),
+                ] },
+                { no: 5, q: R`Her $n \in \mathbb{N}$ için $\lim\limits_{x\to n^-}\llbracket x \rrbracket = n - 1$, $\lim\limits_{x\to n^+}\llbracket x \rrbracket = n$ olacağını gösteriniz.`, a: "Basamak tanımından", s: [R`$n - 1 < x < n$ için $\llbracket x \rrbracket = n - 1$ (sabit); $n \le x < n + 1$ için $n$. Sabit fonksiyonun limiti kendisidir.`] },
+                { no: 6, q: R`$\lim\limits_{x\to2^+}\llbracket x^5 \rrbracket$ ve $\lim\limits_{x\to2^-}\llbracket x^5 \rrbracket$ limitlerini hesaplayınız.`, a: "Sağ: 32, sol: 31", s: [R`2'nin hemen sağında $32 < x^5 < 33$; solunda $31 < x^5 < 32$.`] },
+                { no: 7, q: R`$\lim\limits_{x\to0^+}\dfrac{1}{1 + 2^{1/x}}$ ve $\lim\limits_{x\to0^-}\dfrac{1}{1 + 2^{1/x}}$ limitlerini hesaplayınız. $x = 0$'da limit var mıdır?`, a: "Sağ: 0, sol: 1 → limit yok", s: [R`$x \to 0^+$: $\frac1x \to +\infty$, $2^{1/x} \to \infty$ → 0.`, R`$x \to 0^-$: $\frac1x \to -\infty$, $2^{1/x} \to 0$ → 1.`], graph: ["1/(1+2^(1/x))"] },
+                { no: 8, q: R`$m$'nin hangi değerleri için $\lim\limits_{x\to m}\dfrac{|x|}{x}$ limiti vardır?`, a: R`$m \neq 0$`, s: [R`$m > 0$: limit 1; $m < 0$: limit −1; $m = 0$: sağ 1, sol −1.`] },
+                { no: 9, q: "Aşağıdaki limitleri hesaplayınız.", parts: [
+                    part("a", R`$\lim\limits_{x\to0^+}\dfrac{\sin\sqrt{2x}}{\sqrt{\sin2x}}$`, "1", [R`$\sin\sqrt{2x} \approx \sqrt{2x}$, $\sqrt{\sin2x} \approx \sqrt{2x}$.`]),
+                    part("b", R`$\lim\limits_{x\to\frac12^+}\llbracket\arccos x\rrbracket$`, "1", [R`$\arccos\frac12 = \frac\pi3 \approx 1{,}047$; sağdan biraz küçük ama 1'den büyük.`]),
+                    part("c", R`$\lim\limits_{x\to0^-}\dfrac{\llbracket -x \rrbracket}{\llbracket x \rrbracket}$`, "0", [R`$-x \in (0, 1)$: pay 0; payda $-1$.`]),
+                    part("d", R`$\lim\limits_{x\to0^-}\dfrac{3x}{\llbracket x \rrbracket}$`, "0", [R`$\frac{3x}{-1} \to 0$.`]),
+                ] },
+                { no: 10, q: R`$f: [-3, 3) \to \mathbb{R}$, $f(x) = \sqrt{x - \llbracket x \rrbracket}$ fonksiyonunun grafiğini çiziniz. Limitli olmadığı noktaların kümesini bulunuz.`, a: R`$\{-2, -1, 0, 1, 2\}$`, s: [R`Her tam sayıda soldan 1'e, sağdan 0'a gider.`, R`$-3$ uç nokta: yalnız sağdan yaklaşılır, limit 0 vardır.`], graph: ["sqrt(x-[x])"] },
+                { no: 11, q: R`$\lim\limits_{x\to3}\dfrac{x - \sqrt m}{x - 3}$ limitinin var olduğu biliniyor. Bu limiti hesaplayınız.`, a: "1", s: [R`Payda 0'a gidiyor; limit sonlu olması için pay da 0'a gitmeli: $3 - \sqrt m = 0 \Rightarrow m = 9$.`, R`$\frac{x - 3}{x - 3} = 1$.`] },
+                { no: 12, q: R`$f(x) = \begin{cases} mx + n, & x > -1 \\ 3, & x = -1 \\ mx + 2, & x < -1\end{cases}$ fonksiyonunun $x = -1$'de limitli olması için $m$ ve $n$ ne olmalıdır?`, note: R`Kitapta üçüncü satır da “$x > -1$” basılmış; “$x < -1$” olmalıdır.`, a: R`$n = 2$, $m$ herhangi bir reel sayı`, s: [R`Sağ: $-m + n$, sol: $-m + 2$. Eşit olmalı → $n = 2$. ($f(-1) = 3$ limit için önemli değil.)`] },
+                { no: 13, q: R`Grafikleri verilen $f, g, h, k$ fonksiyonlarının $x = 2$'deki sağ ve sol limitlerini bulunuz. Hangilerinin $x = 2$'de limiti vardır?`, parts: [
+                    part("A", R`$y = f(x)$ (kesintisiz eğri)`, "Sağ = sol = 2 → limit 2"),
+                    part("B", R`$y = g(x)$ ($(2, 2)$'de boş nokta)`, R`Sağ = sol = 2 → limit 2 ($g(2)$ tanımsız olsa da)`),
+                    part("C", R`$y = h(x)$ (soldan 2'de, sağdan 1'de boş nokta)`, "Sol 2, sağ 1 → limit yok"),
+                    part("D", R`$y = k(x)$ (iki taraf da yukarı kaçıyor)`, R`İkisi de $+\infty$ → sonlu limit yok`),
+                ] },
+                { no: 14, q: R`$f(x) = \begin{cases}\frac{\sin x}{x}, & x < 0 \\ \frac{1 - \cos x}{x}, & x > 0\end{cases}$ fonksiyonunun sağ ve sol taraflı limitlerini bulunuz. $x = 0$'da limit var mı?`, a: "Sol 1, sağ 0 → limit yok", s: [R`$\frac{1 - \cos x}{x} = \frac{2\sin^2(x/2)}{x} = \sin\frac x2\cdot\frac{\sin(x/2)}{x/2} \to 0\cdot1$.`] },
+                { no: 15, q: "Aşağıdaki limitleri hesaplayınız.", note: R`Kitapta (j) ve (l) aynı basılmış; (l) için $x \to 2$ de çözüldü.`, parts: [
+                    part("a", R`$\lim\limits_{x\to0}(3x^2 - 2x + 1)$`, "1"), part("b", R`$\lim\limits_{x\to2}(x^2 - 2)^5$`, "32"),
+                    part("c", R`$\lim\limits_{x\to1}\dfrac{(x^2 + 2)^3}{3x - 1}$`, R`$\frac{27}{2}$`),
+                    part("ç", R`$\lim\limits_{x\to-1}\dfrac{x + 1}{x^2 - x - 2}$`, R`$-\frac13$`, [R`$\frac{1}{x - 2}$.`]),
+                    part("d", R`$\lim\limits_{x\to3}\dfrac{x^2 - 9}{x - 3}$`, "6"),
+                    part("e", R`$\lim\limits_{x\to3}\dfrac{\frac1x - \frac13}{x - 3}$`, R`$-\frac19$`, [R`$\frac{3 - x}{3x(x - 3)} = -\frac{1}{3x}$.`]),
+                    part("f", R`$\lim\limits_{x\to-4}\dfrac{\sqrt{x + 8}}{\sqrt{25 - x^2}}$`, R`$\frac23$`),
+                    part("g", R`$\lim\limits_{y\to8}\dfrac{y^{2/3}}{y - \sqrt{2y}}$`, "1", [R`$\frac{4}{8 - 4}$.`]),
+                    part("h", R`$\lim\limits_{x\to0}\dfrac{\sqrt{x + 4} - 2}{x}$`, R`$\frac14$`),
+                    part("ı", R`$\lim\limits_{x\to3}|x - 4|$`, "1"),
+                    part("i", R`$\lim\limits_{x\to0}\dfrac{(1 + x)^2 - 1}{x}$`, "2", [R`$\frac{2x + x^2}{x} = 2 + x$.`]),
+                    part("j", R`$\lim\limits_{x\to-2}\dfrac{x - 1}{x + 2}$`, "Yok (sol $+\infty$, sağ $-\infty$)", [R`Pay $-3$'e, payda 0'a gider.`]),
+                    part("k", R`$\lim\limits_{t\to9}\dfrac{3 - \sqrt t}{9 - t}$`, R`$\frac16$`),
+                    part("l", R`$\lim\limits_{x\to2}\dfrac{x - 1}{x + 2}$`, R`$\frac14$`),
+                    part("m", R`$\lim\limits_{x\to3}(x - \llbracket x \rrbracket)$`, "Yok (sol 1, sağ 0)"),
+                    part("n", R`$\lim\limits_{x\to\frac12}(x - \llbracket x \rrbracket)$`, R`$\frac12$`),
+                    part("o", R`$\lim\limits_{x\to1}\dfrac{|x - 2|}{\operatorname{sgn}(x - 1)^2}$`, "1", [R`$x \ne 1$ için $\operatorname{sgn}^2 = 1$.`]),
+                    part("ö", R`$\lim\limits_{x\to0}5^{1/x}$`, R`Yok (sağ $\infty$, sol 0)`),
+                    part("p", R`$\lim\limits_{x\to2}\left(\llbracket x \rrbracket + \llbracket -x \rrbracket\right)$`, "−1", [R`Tam sayı olmayan $x$ için $\llbracket x \rrbracket + \llbracket -x \rrbracket = -1$.`]),
+                    part("r", R`$\lim\limits_{x\to\frac12}\left(\llbracket x \rrbracket + \llbracket -x \rrbracket\right)$`, "−1"),
+                    part("s", R`$\lim\limits_{x\to\frac\pi2}\llbracket\sin x\rrbracket$`, "0", [R`$\frac\pi2$ civarında $\sin x < 1$.`]),
+                    part("ş", R`$\lim\limits_{x\to\infty}\dfrac{x\sin x}{x + \sin x}$`, "Yok (salınır)", [R`$\frac{\sin x}{1 + \frac{\sin x}{x}} \approx \sin x$.`]),
+                    part("t", R`$\lim\limits_{x\to5}\dfrac{\sqrt5x - 5\sqrt x}{x - 5}$`, R`$\frac{\sqrt5}{2}$`, [R`$\frac{\sqrt5\sqrt x(\sqrt x - \sqrt5)}{(\sqrt x - \sqrt5)(\sqrt x + \sqrt5)} \to \frac{5}{2\sqrt5}$.`]),
+                    part("u", R`$\lim\limits_{x\to\infty}\left(\dfrac{x + 2}{x}\right)^{x + 1}$`, R`$e^2$`),
+                    part("ü", R`$\lim\limits_{x\to\infty}\dfrac{\sqrt{x + 1} + \sqrt{2x + 1}}{x}$`, "0"),
+                    part("v", R`$\lim\limits_{x\to0}\llbracket\cos x\rrbracket$`, "0", [R`$x \ne 0$ yakınında $\cos x < 1$.`]),
+                    part("y", R`$\lim\limits_{x\to\infty}\left(\sqrt{x^2 + x} - \sqrt{x^2 + 5}\right)$`, R`$\frac12$`, [R`Eşlenik: $\frac{x - 5}{\sqrt{x^2+x} + \sqrt{x^2+5}}$.`]),
+                    part("z", R`$\lim\limits_{x\to\infty}\left(\sqrt{x^2 + 8x - 3} - x + 2\right)$`, "6", [R`$\sqrt{x^2 + 8x - 3} - x \to 4$.`]),
+                ] },
+                { no: 16, q: "Sandviç teoreminden yararlanarak aşağıdaki limitleri hesaplayınız.", parts: [
+                    part("a", R`$\lim\limits_{x\to0}x^2\sin\dfrac1x$`, "0", [R`$-x^2 \le x^2\sin\frac1x \le x^2$.`]),
+                    part("b", R`$\lim\limits_{x\to0}x^2\cos\dfrac{1}{\sqrt[3]x}$`, "0"),
+                    part("c", R`$\lim\limits_{x\to0}\sqrt[3]x\sin\dfrac1x$`, "0", [R`$|\ldots| \le |\sqrt[3]x| \to 0$.`]),
+                ] },
+                { no: 17, q: R`$f(x) = \begin{cases}\frac{ax + 1}{x}, & x > 1 \\ \frac{2ax + bx}{x + 1}, & x \le 1\end{cases}$ fonksiyonunun $x = 1$'de limitinin olması için $a$ ve $b$ ne olmalıdır?`, a: R`$b = 2$, $a$ herhangi bir reel sayı`, s: [R`Sağ: $a + 1$. Sol: $\frac{2a + b}{2}$. Eşitle: $2a + 2 = 2a + b$.`] },
+                { no: 18, q: "Aşağıdaki limitleri hesaplayınız.", parts: [
+                    part("a", R`$\lim\limits_{x\to0}\dfrac{x^2}{\sin x}$`, "0"), part("b", R`$\lim\limits_{x\to0}\dfrac{\sin^2x}{x^2}$`, "1"),
+                    part("c", R`$\lim\limits_{x\to0}\dfrac{2x}{\sin x - x}$`, R`$-\infty$`, [R`$\sin x - x \approx -\frac{x^3}{6}$: $\frac{2x}{-x^3/6} = -\frac{12}{x^2} \to -\infty$. (Kitapta $\sin x + x$ kastedildiyse cevap 1.)`]),
+                    part("d", R`$\lim\limits_{x\to0}\dfrac{\sin(2x^2)}{x^2}$`, "2"),
+                    part("e", R`$\lim\limits_{x\to0^+}\dfrac{\sin x}{\sqrt x}$`, "0", [R`$\frac{\sin x}{x}\sqrt x$.`]),
+                    part("f", R`$\lim\limits_{x\to0^+}\dfrac{\sin\sqrt x}{x}$`, R`$+\infty$`, [R`$\frac{\sin\sqrt x}{\sqrt x}\cdot\frac{1}{\sqrt x}$.`]),
+                    part("g", R`$\lim\limits_{x\to0}\dfrac1x\sin\dfrac x3$`, R`$\frac13$`),
+                    part("h", R`$\lim\limits_{x\to0}\dfrac{(\sin3x)^2}{x^2\cos x}$`, "9"),
+                    part("ı", R`$\lim\limits_{x\to0}\dfrac{1 - \cos x}{\sin x}$`, "0", [R`$\frac{1 - \cos x}{x}\cdot\frac{x}{\sin x} \to 0\cdot1$.`]),
+                    part("i", R`$\lim\limits_{x\to0}\dfrac{\tan3x}{\tan5x}$`, R`$\frac35$`),
+                    part("j", R`$\lim\limits_{x\to0}x\sec x\csc x$`, "1", [R`$\frac{x}{\sin x}\cdot\frac{1}{\cos x}$.`]),
+                    part("k", R`$\lim\limits_{x\to0}\dfrac{x - \tan x}{\sin x}$`, "0", [R`$\frac{x}{\sin x} - \frac{1}{\cos x} \to 1 - 1$.`]),
+                    part("l", R`$\lim\limits_{x\to0}\dfrac{1}{x^2}\sin^2\dfrac x2$`, R`$\frac14$`),
+                    part("m", R`$\lim\limits_{x\to2}\dfrac{\sin(x^2 - 4)}{x - 2}$`, "4"),
+                    part("n", R`$\lim\limits_{x\to\infty}x\sin\dfrac1x$`, "1"),
+                    part("o", R`$\lim\limits_{x\to0}\dfrac{\sin(1 - \cos x)}{x}$`, "0", [R`$\frac{\sin(1 - \cos x)}{1 - \cos x}\cdot\frac{1 - \cos x}{x} \to 1\cdot0$.`]),
+                    part("p", R`$\lim\limits_{x\to0}\dfrac{\sin x - \tan x}{x^3}$`, R`$-\frac12$`, [R`$\sin x - \tan x = \tan x(\cos x - 1)$: $\frac{\tan x}{x}\cdot\frac{-(1 - \cos x)}{x^2} \to 1\cdot(-\frac12)$.`]),
+                    part("r", R`$\lim\limits_{x\to0}\dfrac{x\sin x}{1 - \cos x}$`, "2", [R`$\frac{x\sin x}{2\sin^2(x/2)}$, payda $\approx \frac{x^2}{2}$.`]),
+                    part("s", R`$\lim\limits_{x\to0}\dfrac{1 - \cos3x}{\sin3x}$`, "0"),
+                    part("ş", R`$\lim\limits_{x\to0}\dfrac{\cos(x + \frac\pi2)}{x}$`, "−1", [R`$\cos(x + \frac\pi2) = -\sin x$.`]),
+                    part("t", R`$\lim\limits_{x\to\infty}\dfrac{2x}{\cot\frac1x}$`, "2", [R`$2x\tan\frac1x$; $t = \frac1x$: $\frac{2\tan t}{t} \to 2$.`]),
+                    part("u", R`$\lim\limits_{x\to-1}\dfrac{x^{2000} + x^{1999}}{\sin(x + 1)}$`, "−1", [R`$x^{1999}(x + 1)$; $\frac{x + 1}{\sin(x + 1)} \to 1$, $(-1)^{1999} = -1$.`]),
+                ] },
+                { no: 19, q: R`$\lim\limits_{x\to a}f(x) = L$ ise $\lim\limits_{x\to a}|f(x)| = |L|$ olduğunu gösteriniz.`, a: "Ters üçgen eşitsizliği", s: [R`$\big||f(x)| - |L|\big| \le |f(x) - L| < \varepsilon$: aynı $\delta$ işe yarar.`] },
+                { no: 20, q: R`$\lim\limits_{x\to a}|f(x)| = 0$ ise $\lim\limits_{x\to a}f(x) = 0$ olduğunu gösteriniz.`, a: "Tanımdan", s: [R`$|f(x) - 0| = \big||f(x)| - 0\big| < \varepsilon$.`] },
+                { no: 21, q: R`$f(x) = x + 1$, $g(x) = 2x + 4$ olduğuna göre $\lim\limits_{x\to1}\dfrac{(f\circ g)(x)}{(g\circ f)(x)}$ limitini hesaplayınız.`, a: R`$\frac78$`, s: [R`$f\circ g = 2x + 5$, $g\circ f = 2x + 6$: $\frac{7}{8}$.`] },
+                { no: 22, q: R`Grafiği $(-1, 0)$ ve $(0, 2)$'den geçen doğru olan $f$ için $\lim\limits_{x\to\infty}\dfrac{f^{-1}(x)}{f(x)}$ limitini hesaplayınız.`, a: R`$\frac14$`, s: [R`$f(x) = 2x + 2$, $f^{-1}(x) = \frac{x - 2}{2}$.`, R`$\frac{x - 2}{2(2x + 2)} \to \frac{1}{4}$.`] },
+                { no: 23, q: R`Grafiği kitapta verilen $f$ için $\lim\limits_{x\to-1}f(x)$, $\lim\limits_{x\to1}f(x)$, $\lim\limits_{x\to2}f(x)$, $\lim\limits_{x\to3}f(x)$ limitlerini hesaplayınız.`, parts: [
+                    part("−1", R`$x \to -1$`, "2", [R`Eğri $(-1, 2)$'deki boş noktaya iki yandan gelir.`]),
+                    part("1", R`$x \to 1$`, "1", [R`Eğri $(1, 1)$'den geçer.`]),
+                    part("2", R`$x \to 2$`, "0", [R`Eğri x-eksenini 2'de keser.`]),
+                    part("3", R`$x \to 3$`, "Yok (sol −1, sağ 1)", [R`Soldan inen parça $(3, -1)$'e, sağdaki eğri $(3, 1)$'den başlar.`]),
+                ] },
+            ],
+        },
+
+        /* ------------------------- 2.4–2.5 ------------------------- */
+        {
+            id: "problemler-2-5", title: "Problemler · 2.4–2.5 Süreklilik", page: "108–109", sections: ["2.4", "2.5"],
+            problems: [
+                { no: 1, q: R`Aşağıdaki $f: \mathbb{R} \to \mathbb{R}$ fonksiyonlarının sürekli olup olmadıklarını araştırınız; süreksiz oldukları yerde süreksizlik çeşidini belirtiniz.`, note: R`(i)'de kitapta “$x \neq 0$ ise / $2,\ x = 0$ ise” basılmış; $x = 1$ kastedildiği açıktır.`, parts: [
+                    part("a", R`$f(x) = x + |x|$`, "Her yerde sürekli", [R`Sürekli fonksiyonların toplamı.`], ["x+abs(x)"]),
+                    part("b", R`$f(x) = \sqrt{x - \llbracket x \rrbracket}$`, R`Tam sayılarda sıçrama ($J = 1$)`, [R`Soldan 1, sağdan 0 = $f(n)$: sağdan sürekli.`], ["sqrt(x-[x])"]),
+                    part("c", R`$f(x) = \frac1{x^2}$ ($x \ne 0$), $f(0) = 0$`, R`$x = 0$'da sonsuz süreksizlik`, [], ["1/x^2"]),
+                    part("d", R`$f(x) = \llbracket x \rrbracket + \llbracket -x \rrbracket$ ($x \notin \mathbb{Z}$), $-1$ ($x \in \mathbb{Z}$)`, "Her yerde sürekli", [R`Tam sayı olmayanlarda da değer $-1$: sabit fonksiyon.`]),
+                    part("e", R`$f(x) = x^2 + \operatorname{sgn}(x^2 - 1)$`, R`$x = \pm1$'de sıçrama ($J = 2$)`, [R`$x \to 1^-$: $1 - 1 = 0$; $x \to 1^+$: $1 + 1 = 2$; $f(1) = 1$.`], ["x^2+sgn(x^2-1)"]),
+                    part("f", R`$f(x) = \operatorname{sgn}(x^3 - x)$`, R`$x = -1, 0, 1$'de sıçrama ($J = 2$)`, [R`$x^3 - x = x(x - 1)(x + 1)$'in kökleri.`], ["sgn(x^3-x)"]),
+                    part("g", R`$\sqrt{x - 1}$ ($x \ge 1$), $x - 1$ ($x < 1$)`, "Her yerde sürekli", [R`$x = 1$'de iki taraf da 0.`]),
+                    part("h", R`$\frac{2\sin x}{|x|}$ ($x \ne 0$), $2$ ($x = 0$)`, R`$x = 0$'da sıçrama ($J = 4$); sağdan sürekli`, [R`Sağ: 2, sol: $-2$.`], ["2sin(x)/abs(x)"]),
+                    part("ı", R`$x\sin\frac{1}{2x}$ ($x \ne 0$), $0$ ($x = 0$)`, "Her yerde sürekli", [R`Sandviç: limit 0 = $f(0)$.`]),
+                    part("i", R`$\frac{x^2 - 1}{x - 1}$ ($x \ne 1$), $2$ ($x = 1$)`, "Her yerde sürekli", [R`Limit $x + 1 \to 2 = f(1)$.`]),
+                    part("j", R`$f(x) = |x - 3|$`, "Her yerde sürekli"),
+                ] },
+                { no: 2, q: R`Aşağıdaki fonksiyonlar $\mathbb{R}$'nin hangi noktalarında süreksizdir? Süreksizlik çeşidini belirtiniz.`, parts: [
+                    part("a", R`$\frac{1}{x - 1}$`, R`$x = 1$: sonsuz`), part("b", R`$\frac{1}{(x - 2)^2}$`, R`$x = 2$: sonsuz`),
+                    part("c", R`$\frac{x + 1}{x^2 - 3x + 2}$`, R`$x = 1, 2$: sonsuz`, [R`$(x - 1)(x - 2)$; pay bu noktalarda sıfır değil.`]),
+                    part("ç", R`$\frac{x^3 - 1}{x^2 - 1}$`, R`$x = 1$: kaldırılabilir (limit $\frac32$); $x = -1$: sonsuz`),
+                    part("d", R`$\frac{\cos x}{x}$`, R`$x = 0$: sonsuz`), part("e", R`$\frac{|x|}{x}$`, R`$x = 0$: sıçrama ($J = 2$)`),
+                ] },
+                { no: 3, q: R`$g(x) = \begin{cases}\frac{x^2 - 4}{x - 2}, & x \ne 2 \\ m, & x = 2\end{cases}$ her yerde sürekli olması için $m$ ne olmalıdır?`, a: R`$m = 4$` },
+                { no: 4, q: R`$f(x) = \begin{cases} x^2 - 1, & x < 3 \\ 2ax, & x \ge 3\end{cases}$ her yerde sürekli olması için $a$ ne olmalıdır?`, a: R`$a = \frac43$`, s: [R`$8 = 6a$.`] },
+                { no: 5, q: R`$f(x) = \llbracket x^2 - 2x \rrbracket$ fonksiyonu $x = 1$'de sürekli midir?`, a: "Evet", s: [R`$x^2 - 2x = (x - 1)^2 - 1 \ge -1$ ve 1 civarında $-1$ ile $0$ arasında: $\llbracket\cdot\rrbracket = -1 = f(1)$.`], graph: ["[x^2-2x]"] },
+                { no: 6, q: R`$f(x) = \begin{cases} 2\cos x, & x < 0 \\ a\cos x + b, & 0 \le x \le \pi \\ -\sin x, & x > \pi\end{cases}$ her yerde sürekli olması için $a$ ve $b$ ne olmalıdır?`, a: R`$a = b = 1$`, s: [R`$x = 0$: $2 = a + b$. $x = \pi$: $-a + b = 0$.`] },
+                { no: 7, q: R`$f(x) = \begin{cases} -\llbracket x + 1 \rrbracket, & x < 0 \\ \llbracket x - 1 \rrbracket, & x > 0\end{cases}$ fonksiyonu $x = 0$'da tanımlı değildir. (a) Sağdan, (b) soldan sürekli olması için $f(0)$ ne olmalıdır?`, a: R`(a) $f(0) = -1$; (b) $f(0) = 0$`, s: [R`Sağ: $x - 1 \in (-1, 0)$ → $-1$. Sol: $x + 1 \in (0, 1)$ → $-0 = 0$.`] },
+                { no: 8, q: R`$f(x) = \llbracket x \rrbracket + \llbracket -x \rrbracket$ fonksiyonunun grafiğini çiziniz. Hangi noktalarda süreksizdir, ne tür?`, a: "Her tam sayıda kaldırılabilir süreksizlik", s: [R`Tam sayılarda $f = 0$, diğer yerlerde $-1$. Limit $-1 \ne 0$.`], graph: ["[x]+[-x]"] },
+                { no: 9, q: R`$f(x) = \frac1x$ için $f(-1) = -1$, $f(1) = 1$'dir. Fonksiyon $-1$ ile $1$ arasında 0 değerini alır mı? Bu sonuç Bolzano teoremi ile çelişir mi?`, a: "Almaz; çelişki yok", s: [R`$\frac1x \ne 0$ her zaman. Bolzano $[-1, 1]$'de süreklilik ister; $f$, $x = 0$'da tanımsız.`] },
+                { no: 10, q: R`$x^6 + 2x - 2 = 0$ denkleminin $-2$ ile $-1$ ve $0$ ile $1$ arasında birer köke sahip olduğunu gösteriniz. Başka kökü var mıdır?`, a: "Tam iki reel kök", s: [R`$f(-2) = 58$, $f(-1) = -3$; $f(0) = -2$, $f(1) = 1$.`, R`$x^6 = 2 - 2x$: azalan doğru, U biçimli $y = x^6$'yı en fazla iki noktada keser.`], graph: ["x^6", "2-2x"] },
+                { no: 11, q: R`$8x^3 - 12x^2 - 2x + 3 = 0$ denkleminin $(-1, 0)$, $(0, 1)$, $(1, 2)$ aralıklarında birer kökü olduğunu gösteriniz. $x = \frac t2$ koyarak kökleri bulunuz.`, a: R`$x = -\frac12,\ \frac12,\ \frac32$`, s: [R`$f(-1) = -15$, $f(0) = 3$, $f(1) = -3$, $f(2) = 15$: üç işaret değişimi.`, R`$x = \frac t2$: $t^3 - 3t^2 - t + 3 = (t - 3)(t - 1)(t + 1) = 0$.`] },
+                { no: 12, q: "Aşağıdaki denklemlerin karşılarında yazılı aralıklarda birer köke sahip olduklarını gösteriniz. (Uç değerlerin işaretine bak.)", parts: [
+                    part("a", R`$x^2 - 5 = 0,\ [2, 3]$`, R`$f(2) = -1,\ f(3) = 4$`), part("b", R`$x^3 + x + 1 = 0,\ [-1, 0]$`, R`$f(-1) = -1,\ f(0) = 1$`),
+                    part("c", R`$x^3 - 3x^2 + 1 = 0,\ [0, 1]$`, R`$f(0) = 1,\ f(1) = -1$`), part("d", R`$x^3 - 5 = 0,\ [1, 2]$`, R`$f(1) = -4,\ f(2) = 3$`),
+                    part("e", R`$x^4 + 2x - 1 = 0,\ [0, 1]$`, R`$f(0) = -1,\ f(1) = 2$`), part("f", R`$x^5 - 5x^3 + 3 = 0,\ [-3, -2]$`, R`$f(-3) = -105,\ f(-2) = 11$`),
+                ] },
+                { no: 13, q: R`$-3, -2, -1, 0, 1, 2$ noktalarındaki değerlerden yararlanarak denklemlerin üçer köke sahip olduğunu gösteriniz.`, parts: [
+                    part("a", R`$x^3 - 4x + 1 = 0$`, R`$(-3, -2),\ (0, 1),\ (1, 2)$`, [R`$f$: $-14, 1, 4, 1, -2, 1$.`]),
+                    part("b", R`$x^3 - 3x^2 + 1 = 0$`, R`$(-1, 0),\ (0, 1)$ ve $(2, 3)$`, [R`$f$: $-53, -19, -3, 1, -1, -3$ — verilen noktalarda yalnız iki işaret değişimi var; üçüncü kök için $f(3) = 1$ gerekir.`]),
+                ] },
+                { no: 14, q: R`$f(x) = \sin\frac1x$ ($x \ne 0$), $f(0) = 0$ fonksiyonu $x = 0$'da sürekli midir?`, a: "Hayır", s: [R`$x \to 0$ iken $-1$ ile $1$ arasında salınır; limit yok.`], graph: ["sin(1/x)"] },
+                { no: 15, q: R`$\lim\limits_{x\to x_0}\frac{f(x) - g(x)}{x - x_0} = 0$ ise grafikler $x_0$'da teğettir. $f(x) = 2x^2$ ve $g(x) = -x^2 + 6x - 3$ grafiklerinin $x_0 = 1$'de teğet olduğunu gösteriniz.`, a: "Teğettirler", s: [R`$f(1) = g(1) = 2$.`, R`$\frac{3x^2 - 6x + 3}{x - 1} = 3(x - 1) \to 0$.`], graph: ["2x^2", "-x^2+6x-3"] },
+                { no: 16, q: R`$f: [0, 1] \to [0, 1]$ sürekli ise $f(c) = c$ olacak bir $c$ (sabit nokta) olduğunu gösteriniz. Aşağıdakilerin sabit noktalarını bulunuz.`, note: R`İspat: $g(x) = f(x) - x$; $g(0) \ge 0$, $g(1) \le 0$ → Bolzano.`, parts: [
+                    part("a", R`$1 - x^2$`, R`$\frac{\sqrt5 - 1}{2}$`, [R`$x^2 + x - 1 = 0$.`]), part("b", R`$x^2$`, "0 ve 1"),
+                    part("c", R`$1 - x$`, R`$\frac12$`), part("d", R`$x$`, "Her nokta"), part("e", R`$\frac12$`, R`$\frac12$`), part("f", R`$\sin x$`, "0"),
+                ] },
+                { no: 17, q: R`$f(x) = \begin{cases} x^2 + 2, & -2 \le x < 0 \\ -(x^2 + 2), & 0 \le x \le 2\end{cases}$ için $[-2, 2]$'de $f(x) = 0$ olan bir $x$ var mıdır?`, a: "Yok", s: [R`$|f(x)| \ge 2$. Uçlarda zıt işaret olsa da $f$, 0'da süreksiz; Bolzano uygulanamaz.`] },
+                { no: 18, q: R`$a_n\cdot a_0 < 0$ olmak üzere $a_nx^n + \cdots + a_1x + a_0 = 0$ denkleminin en az bir pozitif kökü olduğunu gösteriniz.`, a: "Bolzano", s: [R`$P(0) = a_0$; büyük $x$ için $P(x)$'in işareti $a_n$'inki. Zıt işaretler → $(0, M)$'de kök.`] },
+                { no: 19, q: R`$[a, b]$'de sürekli $f$ için $f(a) \ge a$ ve $f(b) \le b$ ise $f$'nin bir sabit noktası olduğunu gösteriniz.`, a: R`$g(x) = f(x) - x$ ile Bolzano`, s: [R`$g(a) \ge 0$, $g(b) \le 0$; eşitlik varsa uç nokta zaten sabit nokta.`] },
+            ],
+        },
+
+        /* ----------------------- Bölüm Problemleri ----------------------- */
+        {
+            id: "bolum-problemleri-2", title: "Bölüm Problemleri · Limit ve Süreklilik", page: "110–111", whole: true, sections: ["2.1", "2.2", "2.3", "2.4", "2.5"],
+            problems: [
+                { no: 1, q: R`$f(x) = \sqrt{x^2 + x} - \sqrt{x^2 - x}$. (a) Tanım kümesini bulunuz. (b) $\lim\limits_{x\to-\infty}f(x)$'i hesaplayınız.`, a: R`(a) $(-\infty, -1] \cup \{0\} \cup [1, \infty)$; (b) $-1$`, s: [R`$x^2 + x \ge 0$: $x \le -1$ veya $x \ge 0$; $x^2 - x \ge 0$: $x \le 0$ veya $x \ge 1$.`, R`Eşlenik: $\frac{2x}{\sqrt{x^2+x} + \sqrt{x^2-x}} \approx \frac{2x}{2|x|} = -1$.`] },
+                { no: 2, q: "Limitleri hesaplayınız.", parts: [
+                    part("a", R`$\lim\limits_{x\to0}\dfrac{\sin\alpha x - \tan\alpha x}{x^3}$`, R`$-\frac{\alpha^3}{2}$`, [R`18(p) ile aynı yol, $x$ yerine $\alpha x$.`]),
+                    part("b", R`$\lim\limits_{x\to0}\dfrac{\cos^3 3x - \cos^3 2x}{x^2}$`, R`$-\frac{15}{2}$`, [R`$\cos^3 kx \approx 1 - \frac{3k^2x^2}{2}$: $-\frac{27}{2} + \frac{12}{2}$.`]),
+                ] },
+                { no: 3, q: R`$\lim\limits_{x\to0}\llbracket\sin x + \cos x\rrbracket$ limitini hesaplayınız.`, a: "Yok (sağ 1, sol 0)", s: [R`$\sin x + \cos x = \sqrt2\sin(x + \frac\pi4)$; $x = 0$'da 1, sağda 1'den büyük, solda küçük.`] },
+                { no: 4, q: R`$0 < |x - 2| < \frac{3\varepsilon}{2}$ ise $|f(x) - 3| < \varepsilon$; $0 < |x - 2| < \varepsilon + \sqrt\varepsilon$ ise $|g(x) - 4| < \varepsilon$. $0 < |x - 2| < \delta$ olduğunda $|f(x) + g(x) - 7| < \frac1{50}$ olacak bir $\delta$ bulunuz.`, a: R`$\delta = 0{,}015$`, s: [R`Her birini $\frac{1}{100}$'den küçük yap: $f$ için $|x - 2| < \frac{3}{200}$, $g$ için $|x - 2| < 0{,}01 + 0{,}1$.`, R`Küçüğü: $0{,}015$.`] },
+                { no: 5, q: R`$\lim\limits_{x\to a}f(x) = L$ ve $\lim\limits_{x\to a}f(x) = M$ ise $L = M$'dir. Gösteriniz.`, a: "Limit tektir", s: [R`$|L - M| \le |L - f(x)| + |f(x) - M| < \frac\varepsilon2 + \frac\varepsilon2$ her $\varepsilon$ için → $L = M$.`] },
+                { no: 6, q: R`$\lim\limits_{x\to0}|f(x)| = 1$ fakat $\lim\limits_{x\to0}f(x)$ mevcut olmayan bir $f$ bulunuz. $|f|$ sürekli ise $f$ sürekli midir?`, a: R`Örn. $f(x) = \frac{|x|}{x}$; hayır`, s: [R`$|f| = 1$ sabit ama $f$ sıçrıyor.`] },
+                { no: 7, q: R`Her $x \ne a$ için $|f(x)| \le M|x - a|$ ise $\lim\limits_{x\to a}f(x) = 0$ olduğunu gösteriniz.`, a: "Sandviç", s: [R`$-M|x - a| \le f(x) \le M|x - a|$.`] },
+                { no: 8, q: R`$f(x) \ge 0$ ve $\lim\limits_{x\to a}[f(x)]^2 = L > 0$ ise $\lim\limits_{x\to a}f(x) = \sqrt L$ olduğunu gösteriniz.`, a: "Karekök sürekli", s: [R`$f = \sqrt{f^2}$ ve $\sqrt{\ }$ sürekli (kural 4).`] },
+                { no: 9, q: R`$\lim\limits_{x\to0}f(x) = L$ ise her $n \in \mathbb{N}$ için $\lim\limits_{x\to0}f(x^n) = L$ olacağını gösteriniz.`, a: R`$x^n \to 0$`, s: [R`$|x| < \min(1, \delta)$ ise $|x^n| \le |x| < \delta$.`] },
+                { no: 10, q: R`$\lim\limits_{x\to a}(f + g)$ mevcut fakat $\lim f$ ve $\lim g$ mevcut olmayan $f$ ve $g$ bulunuz.`, a: R`Örn. $f = \llbracket x \rrbracket$, $g = -\llbracket x \rrbracket$, $a = 1$` },
+                { no: 11, q: R`$\lim\limits_{x\to0}\frac{f(x)}{g(x)}$ mevcut fakat $f$ ve $g$'den en az biri $x = 0$'da limitli olmayan fonksiyonlar bulunuz.`, a: R`Örn. $f = g = \frac1x$` },
+                { no: 12, q: R`$a > 0$ için $\lim\limits_{x\to\pm\infty}\left(\sqrt{ax^2 + bx + c} - \sqrt a\left|x + \frac{b}{2a}\right|\right) = 0$ olduğunu gösterip $\lim\limits_{x\to\infty}\left(\sqrt{4x^2 + 8x + 1} - \sqrt{4x^2 - 3x - 1}\right) = \frac{11}{4}$ olduğunu gösteriniz.`, a: R`$\frac{11}{4}$`, s: [R`$ax^2 + bx + c = a\left(x + \frac{b}{2a}\right)^2 + k$; eşlenikle fark $\frac{k}{\ldots} \to 0$.`, R`$2|x + 1| - 2|x - \frac38| = 2 + \frac34$.`] },
+                { no: 13, q: R`$\lim\limits_{x\to a}f(x) = L$ ise $\lim\limits_{x\to-a}f(-x) = L$ olduğunu gösteriniz.`, a: R`$u = -x$ dönüşümü` },
+                { no: 14, q: R`$\lim\limits_{x\to a}f(x) = +\infty$ ise $\lim\limits_{x\to a}\frac{1}{f(x)} = 0$ olduğunu gösteriniz.`, a: R`$f > \frac1\varepsilon \Rightarrow 0 < \frac1f < \varepsilon$` },
+                { no: 15, q: R`$\lim\limits_{x\to a}f(x) = L$ ve $g$, $L$'de sürekli ise $\lim\limits_{x\to a}(g\circ f)(x) = g(L)$ olduğunu gösteriniz.`, a: "Teorem 2.5'in limit hâli" },
+                { no: 16, q: "Limitleri hesaplayınız.", parts: [
+                    part("a", R`$\lim\limits_{x\to0}\sqrt{\tan x + 3\sec x}$`, R`$\sqrt3$`), part("b", R`$\lim\limits_{x\to0}\sin\left(\frac\pi2\cos(\tan x)\right)$`, "1"),
+                ] },
+                { no: 17, q: R`$[AB]$ çaplı yarım çembere $A$'da teğet $AP$ doğrusu; $|AP| = |AN|$ olacak şekilde $P$ ve $N$, $A$'ya yaklaştırılıyor. $|AB| = 2$ ise $\lim\limits_{P\to A}|BK|$ kaçtır? ($K$: $PN$ doğrusunun $AB$ ile kesişimi)`, a: "2", s: [R`$A = (0, 0)$, çember $(x - 1)^2 + y^2 = 1$, $P = (0, p)$. $N$: $x = \frac{p^2}{2}$, $y = p\sqrt{1 - \frac{p^2}{4}}$.`, R`$K$'nin apsisi $\dfrac{p^2/2}{1 - \sqrt{1 - p^2/4}} \to \dfrac{p^2/2}{p^2/8} = 4$.`, R`$|BK| = 4 - 2$.`] },
+                { no: 18, q: R`$f(x) = \frac{(1 + x)^n - 1}{x}$ ($x \ne 0$), $f(0) = k$ fonksiyonunun $\mathbb{R}$'de sürekli olması için $k$ ne olmalıdır?`, a: R`$k = n$`, s: [R`Binom: $(1 + x)^n = 1 + nx + \ldots$ → $\frac{nx + \ldots}{x} \to n$.`] },
+                { no: 19, q: "Süreksizlik noktalarını ve sıçramaları bulunuz.", parts: [
+                    part("a", R`$f(x) = \dfrac{2(x - 1)}{x^2 - x^3}$`, R`$x = 0$: sonsuz; $x = 1$: kaldırılabilir (limit $-2$)`, [R`$\frac{2(x - 1)}{x^2(1 - x)} = -\frac{2}{x^2}$.`]),
+                    part("b", R`$f(x) = \arctan\dfrac{1}{x - 3}$`, R`$x = 3$: sıçrama, $J = \pi$`, [], ["arctan(1/(x-3))"]),
+                ] },
+                { no: 20, q: R`$g\circ f$ fonksiyonunun süreksizlik noktalarını bulunuz.`, parts: [
+                    part("a", R`$f = \tan x$, $g = \frac{1 - x^2}{1 + x^2}$`, R`$x = \frac\pi2 + k\pi$ (kaldırılabilir; limit $-1$)`, [R`$g(\tan x) = \cos2x$, ama $\tan x$ bu noktalarda tanımsız.`]),
+                    part("b", R`$f = x - 1$ ($x \ge 0$), $x + 1$ ($x \le 0$); $g = x^2$`, "Süreksizlik noktası yok", [R`$f$ 0'da sıçrar ama $g(f(x)) \to 1$ iki yandan: bileşke sürekli.`]),
+                ] },
+                { no: 21, q: "Tanımlı fakat süreksiz oldukları noktaları bulunuz.", parts: [
+                    part("a", R`$\cos(x^n)$`, "Yok"), part("b", R`$\cos(\ln x)$`, "Yok (tanım kümesi x > 0)"),
+                    part("c", R`$\sqrt{\frac12 - \cos^2x}$`, "Yok (tanımlı olduğu aralıklarda sürekli)"),
+                ] },
+                { no: 22, q: R`$f(x) = \frac{1}{x - 1}$ ve $g = f\circ f\circ f$. $g$'nin $x_1 = 0$ ve $x_2 = 1$'de süreksiz olduğunu gösteriniz.`, note: R`Yazıldığı gibi $f = \frac{1}{x - 1}$ için süreksizlik noktaları $1, 2, \frac32$ çıkar. Soru $f = \frac{1}{1 - x}$ ile kurulmuş olmalı; o zaman $f\circ f\circ f = x$ ve tanımsız noktalar tam $0$ ve $1$'dir.`,
+                    a: R`$f = \frac{1}{1 - x}$ için: $x = 1$ ($f$ tanımsız), $x = 0$ ($f(f(0))$ tanımsız)`, s: [R`$f(f(x)) = \frac{1}{1 - \frac{1}{1-x}} = \frac{x - 1}{x}$, $x = 0$'da tanımsız.`, R`$f(f(f(x))) = x$, ama bu iki noktada bileşke tanımsız.`] },
+                { no: 23, q: R`$f(x) = \frac{x^3}{4} - \sin\pi + 3$ fonksiyonu $[-2, 2]$'de $\frac73$ değerini alabilir mi?`, a: R`Evet, $x = -\sqrt[3]{8/3} \approx -1{,}387$`, s: [R`$f = \frac{x^3}{4} + 3$, sürekli; $f(-2) = 1$, $f(2) = 5$; $\frac73 \in [1, 5]$ → ara değer teoremi.`] },
+                { no: 24, q: R`$f(x) = x^{2n+1}$'in sürekli ve artan olduğunu, tersinin $f^{-1}(x) = \sqrt[2n+1]{x}$ de sürekli ve artan olduğunu gösteriniz.`, a: "Teorem 2.9", s: [R`Polinom → sürekli; tek kuvvet kesin artan; Teorem 2.9 tersin özelliklerini verir.`] },
+                { no: 25, q: R`$a_0, \ldots, a_{n+1}$ pozitif sayılar olmak üzere $f(x) = a_0x^{2n+1} + a_1x^{2n-1} + \cdots + a_nx + a_{n+1}$ fonksiyonunun sürekli ve artan bir tersi olduğunu gösteriniz.`, a: "Tek kuvvetler + pozitif katsayılar", s: [R`Her terim kesin artan; toplam kesin artan, $\pm\infty$'a gider → $\mathbb{R}$'ye birebir örten; Teorem 2.9.`] },
+            ],
+        },
+    ];
+
+    global.PRACTICE = global.PRACTICE || { tests: [], problemSets: [] };
+    tests.forEach((t) => (t.chapter = "limit"));
+    problemSets.forEach((s) => (s.chapter = "limit"));
+    global.PRACTICE.tests.push(...tests);
+    global.PRACTICE.problemSets.push(...problemSets);
+})(window);
