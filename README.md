@@ -1,7 +1,7 @@
 # Madam Matematik
 
 Matematiği en basit hâliyle anlatan, etkileşimli grafik araçlı web uygulaması (PWA).
-Şu an **Matematik 1 (Mustafa Balcı)** kitabından **Bölüm 0: Önbilgiler** (0.1–0.6, 18 ders), **Bölüm 1: Fonksiyonlar** (1.1–1.7, 29 ders) ve **Bölüm 2: Limit ve Süreklilik** (2.1–2.5, 12 ders) hazır; her bölümün testleri ve kitap problemlerinin çözümleri dahil.
+Şu an **Matematik 1 (Mustafa Balcı)** kitabından **Bölüm 0: Önbilgiler** (0.1–0.6, 18 ders), **Bölüm 1: Fonksiyonlar** (1.1–1.7, 29 ders) **Bölüm 2: Limit ve Süreklilik** (2.1–2.5, 12 ders), **Bölüm 3: Türev** (3.1–3.13, 16 ders) ve **Bölüm 4: Türevin Uygulamaları** (4.1–4.11, 18 ders) hazır; her bölümün testleri ve kitap problemlerinin çözümleri dahil. Ayrıca Matematik I arasınavı (2025–2026 Güz) çözümleri ve vize provası testi var.
 
 Kurulum veya derleme adımı yoktur; saf HTML/CSS/JS'dir.
 
@@ -40,6 +40,9 @@ Bir kez açılan sayfalar internetsiz de çalışır (`sw.js`).
 | `js/content/fonksiyonlar.js` | Bölüm 1 ders içerikleri |
 | `js/content/fonksiyonlar-testler.js` | Bölüm 1 çoktan seçmeli testler + kitap problemlerinin çözümleri |
 | `js/content/limit.js`, `limit-testler.js` | Bölüm 2 dersleri; testler + problem çözümleri |
+| `js/content/turev.js`, `turev-testler.js` | Bölüm 3 dersleri; testler + problem çözümleri |
+| `js/content/turev-uygulamalari.js`, `turev-uygulamalari-testler.js` | Bölüm 4 dersleri; testler + problem çözümleri |
+| `js/content/vize.js` | Geçmiş sınav çözümleri (`exam: true`) + vize provası testi |
 | `js/app.js` | Yönlendirme, sayfalar, ilerleme, grafik çizici |
 | `sw.js`, `manifest.json`, `icons/` | PWA |
 

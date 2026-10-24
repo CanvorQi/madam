@@ -4,7 +4,7 @@
  * ilk kullanımda önbelleğe girer. Böylece bir kez açılan uygulama internetsiz de çalışır.
  * Dosyaları değiştirdikten sonra CACHE_NAME sürümünü artır ki kullanıcılar yeni sürümü alsın.
  */
-const CACHE_NAME = "madam-v6";
+const CACHE_NAME = "madam-v7";
 const APP_SHELL = [
     "./",
     "./index.html",
@@ -19,6 +19,11 @@ const APP_SHELL = [
     "./js/content/fonksiyonlar-testler.js",
     "./js/content/limit.js",
     "./js/content/limit-testler.js",
+    "./js/content/turev.js",
+    "./js/content/turev-testler.js",
+    "./js/content/turev-uygulamalari.js",
+    "./js/content/turev-uygulamalari-testler.js",
+    "./js/content/vize.js",
     "./js/app.js",
     "./icons/icon.svg",
     "./icons/icon-192.png",

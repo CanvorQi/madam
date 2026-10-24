@@ -84,9 +84,14 @@
             </a></div>` : ""}
         <a class="card lesson-row" href="#/testler" style="margin-top:16px;padding:18px 20px">
             <div class="chapter-no" style="background:var(--green);color:#fff">🎯</div>
-            <div><div class="lt">Testler ve kitap problemleri</div><div class="ls">${PRACTICE.tests.length} çoktan seçmeli test · kitaptaki ${PRACTICE.problemSets.reduce((a, s) => a + s.problems.length, 0)} problemin adım adım çözümü</div></div>
+            <div><div class="lt">Testler ve kitap problemleri</div><div class="ls">${PRACTICE.tests.length} çoktan seçmeli test · kitaptaki ${PRACTICE.problemSets.filter((s) => !s.exam).reduce((a, s) => a + s.problems.length, 0)} problemin adım adım çözümü</div></div>
             <span class="arrow">›</span>
         </a>
+        ${PRACTICE.problemSets.filter((s) => s.exam).map((s) => `<a class="card lesson-row" href="#/problemler/${s.id}" style="margin-top:16px;padding:18px 20px">
+            <div class="chapter-no" style="background:var(--orange);color:#fff">📝</div>
+            <div><div class="lt">Geçmiş sınav: ${esc(s.title)}</div><div class="ls">${s.problems.length} soru · adım adım çözümler ve ilgili dersler</div></div>
+            <span class="arrow">›</span>
+        </a>`).join("")}
         <div class="card" style="margin-top:16px">
             <h2 class="section-title">Konular · ${esc(COURSE.title)}</h2>
             ${chapterGrid()}
@@ -344,12 +349,28 @@
                 <div><div class="lt">${esc(s.title)}</div><div class="ls">Kitap s. ${s.page}</div></div>
                 <span class="pill ${n ? "green" : "gray"}" style="margin-left:auto;white-space:nowrap">${n}/${s.problems.length}</span></a>`;
         });
+        const exams = tests.filter((t) => t.exam).map((t) => {
+            const sc = testScores[t.id];
+            return `<a class="lesson-row" href="#/test/${t.id}">
+                <div class="lesson-check" style="${sc ? "background:var(--green);border-color:var(--green);color:#fff" : ""}">${sc ? sc.best : "🎯"}</div>
+                <div><div class="lt">${esc(t.title)}</div><div class="ls">${esc(t.desc)}</div></div>
+                <span class="pill ${sc ? "green" : "gray"}" style="margin-left:auto;white-space:nowrap">${sc ? `en iyi ${sc.best}/${t.questions.length}` : `${t.questions.length} soru`}</span></a>`;
+        }).join("") + problemSets.filter((s) => s.exam).map((s) => {
+            const n = solvedCount(s);
+            return `<a class="lesson-row${n === s.problems.length ? " done" : ""}" href="#/problemler/${s.id}">
+                <div class="lesson-check">${n === s.problems.length ? "✓" : "📝"}</div>
+                <div><div class="lt">${esc(s.title)}</div><div class="ls">${s.problems.length} soru · çözümlü</div></div>
+                <span class="pill ${n ? "green" : "gray"}" style="margin-left:auto;white-space:nowrap">${n}/${s.problems.length}</span></a>`;
+        }).join("");
         return `
         <div class="page-head">
             <div class="crumbs"><a href="#/">Ana Sayfa</a> › <span>Testler</span></div>
             <h1>Testler ve Problemler</h1>
             <p>Çoktan seçmeli testlerle kendini dene; kitaptaki tüm problemlerin adım adım çözümlerine bak.</p>
         </div>
+        ${exams ? `<div class="card"><div class="section-head"><span class="section-num" style="background:var(--orange)">📝</span><h2>Geçmiş sınavlar</h2></div>
+            <p class="muted" style="margin:0 0 10px;font-size:14px">Gerçek sınav sorularının çözümleri ve aynı tarzda prova testi.</p>
+            <div class="lesson-list">${exams}</div></div>` : ""}
         <div class="card"><div class="section-head"><span class="section-num">🎯</span><h2>Çoktan seçmeli testler</h2></div>
             <p class="muted" style="margin:0 0 10px;font-size:14px">Her test 10 soru. Bitirince puanını ve her sorunun açıklamasını görürsün.</p>
             <div class="lesson-list">${tcards}</div></div>
@@ -477,9 +498,9 @@
         const n = solvedCount(set);
         return `
         <div class="page-head">
-            <div class="crumbs"><a href="#/testler">Testler</a> › <span>Kitap problemleri</span></div>
+            <div class="crumbs"><a href="#/testler">Testler</a> › <span>${set.exam ? "Geçmiş sınavlar" : "Kitap problemleri"}</span></div>
             <h1>${esc(set.title)}</h1>
-            <p>Matematik 1, s. ${set.page}. Önce kendin çöz, sonra çözümü aç ve kontrol et.</p>
+            <p>${set.source ? esc(set.source) : `Matematik 1, s. ${set.page}`}. Önce kendin çöz, sonra çözümü aç ve kontrol et.</p>
             <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
                 <div class="progress-bar" style="flex:1;min-width:160px"><span data-pbar style="width:${Math.round((n / set.problems.length) * 100)}%"></span></div>
                 <b style="color:var(--blue-deep);font-family:Sora,sans-serif" data-pcount>${n}/${set.problems.length} çözüldü</b>

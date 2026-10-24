@@ -1168,6 +1168,152 @@
         reset();
     };
 
+    /* ---------------- Türev: kirişten teğete ---------------- */
+    // presets: [{ tex, expr, a, view, amin, amax }]
+    W.secant = function (root, o) {
+        const presets = o.presets;
+        let pi = 0, f = MathParser.fx(presets[0].expr);
+        chips(root, presets.map((p) => tex(p.tex)), 0, (i) => {
+            pi = i; f = MathParser.fx(presets[i].expr);
+            const p = presets[i];
+            sa.setRange(p.amin, p.amax); sa.set(p.a);
+            plot.setView(p.view); render();
+        });
+        const plot = makePlot(root, { view: presets[0].view, height: 300, exprs: () => [presets[pi].expr] });
+        plot.canvas.parentElement.style.marginTop = "12px";
+        const ctrls = el(`<div class="controls"></div>`);
+        root.appendChild(ctrls);
+        const p0 = presets[0];
+        const sa = slider(ctrls, { label: "Değme noktası a", min: p0.amin, max: p0.amax, step: 0.05, value: p0.a, format: (v) => `a = ${fmt(v, 2)}` }, render);
+        const sh = slider(ctrls, { label: "Artma miktarı h", min: 0, max: 100, step: 1, value: 0, format: (v) => `h = ${fmt(hOf(v), 4)}` }, render);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        function hOf(v) { return 2 * Math.pow(10, -2.5 * v / 100); }
+        function render() {
+            const a = sa.get(), h = hOf(sh.get()), fa = f(a), fb = f(a + h);
+            const ms = (fb - fa) / h, mt = deriv(f, a);
+            plot.setItems([
+                { type: "fn", f, color: C.blue, width: 3 },
+                { type: "fn", f: (x) => fa + mt * (x - a), color: C.green, width: 2, dash: true, label: "teğet" },
+                { type: "fn", f: (x) => fa + ms * (x - a), color: C.pink, width: 2.2, label: "kiriş" },
+                { type: "seg", x1: a, y1: fa, x2: a + h, y2: fa, color: C.gray, width: 1.4, dash: [4, 4] },
+                { type: "seg", x1: a + h, y1: fa, x2: a + h, y2: fb, color: C.gray, width: 1.4, dash: [4, 4] },
+                { type: "point", x: a, y: fa, color: C.green, label: "A", labelPos: "nw" },
+                { type: "point", x: a + h, y: fb, color: C.pink, label: "P" },
+            ]);
+            readout.innerHTML = `Kirişin eğimi: ${tex(`\\dfrac{f(a+h)-f(a)}{h} = ${texNum(ms, 4)}`)} &nbsp;·&nbsp; teğetin eğimi: ${tex(`f'(${texNum(a, 2)}) \\approx ${texNum(mt, 4)}`)}<br>` +
+                `<span class="muted">h küçüldükçe P noktası A'ya yaklaşır, pembe kiriş yeşil teğete yapışır: türev, kiriş eğimlerinin limitidir.</span>`;
+        }
+        render();
+    };
+
+    /* ---------------- Türev: f ile f' birlikte ---------------- */
+    // presets: [{ tex, expr, dexpr (isteğe bağlı), view, dview, x0 }]
+    W.derivative = function (root, o) {
+        const presets = o.presets;
+        let pi = 0, f, df;
+        const load = () => {
+            const p = presets[pi];
+            f = MathParser.fx(p.expr);
+            df = p.dexpr ? MathParser.fx(p.dexpr) : (x) => deriv(f, x);
+        };
+        load();
+        chips(root, presets.map((p) => tex(p.tex)), 0, (i) => {
+            pi = i; load();
+            const p = presets[i];
+            sx.setRange(p.view.xmin, p.view.xmax); sx.set(p.x0 === undefined ? 0 : p.x0);
+            top.setView(p.view); bottom.setView(p.dview); render();
+        });
+        const top = makePlot(root, { view: presets[0].view, height: 230, exprs: () => [presets[pi].expr] });
+        top.canvas.parentElement.style.marginTop = "12px";
+        const lbl = el(`<div class="muted" style="font-size:13px;margin:8px 0 4px">Altta türev fonksiyonu ${tex("y = f'(x)")}: her noktadaki teğet eğimi</div>`);
+        root.appendChild(lbl);
+        const bottom = makePlot(root, { view: presets[0].dview, height: 190 });
+        const ctrls = el(`<div class="controls"></div>`);
+        root.appendChild(ctrls);
+        const v0 = presets[0].view;
+        const sx = slider(ctrls, { label: "Nokta x", min: v0.xmin, max: v0.xmax, step: 0.05, value: presets[0].x0 === undefined ? 0 : presets[0].x0, format: (v) => `x = ${fmt(v, 2)}` }, render);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        function render() {
+            const x = sx.get(), y = f(x), m = df(x);
+            const col = Math.abs(m) < 1e-3 ? C.orange : m > 0 ? C.green : C.red;
+            top.setItems([
+                { type: "fn", f, color: C.blue, width: 3, label: "f" },
+                { type: "fn", f: (t) => y + m * (t - x), color: col, width: 2, dash: true, xmin: x - 1.5, xmax: x + 1.5 },
+                { type: "point", x, y, color: col },
+            ]);
+            bottom.setItems([
+                { type: "fn", f: df, color: C.purple, width: 3, label: "f′" },
+                { type: "vline", x, color: C.gray, width: 1.2 },
+                { type: "point", x, y: m, color: col, label: `f′ = ${fmt(m, 3)}` },
+            ]);
+            const state = Math.abs(m) < 1e-3 ? "<b>yatay teğet</b> (f′ = 0): olası ekstremum noktası" : m > 0 ? "f′ > 0 → f burada <b>artan</b>" : "f′ < 0 → f burada <b>azalan</b>";
+            readout.innerHTML = `${tex(`f'(${texNum(x, 2)}) \\approx ${texNum(m, 3)}`)} — ${state}.`;
+        }
+        render();
+    };
+
+    /* ---------------- Rolle / Ortalama Değer Teoremi ---------------- */
+    // presets: [{ tex, expr, a, b, view, min, max }]
+    W.meanvalue = function (root, o) {
+        const presets = o.presets;
+        let pi = 0, f = MathParser.fx(presets[0].expr);
+        chips(root, presets.map((p) => tex(p.tex)), 0, (i) => {
+            pi = i; f = MathParser.fx(presets[i].expr);
+            const p = presets[i];
+            [sa, sb].forEach((s) => s.setRange(p.min, p.max));
+            sa.set(p.a); sb.set(p.b);
+            plot.setView(p.view); render();
+        });
+        const plot = makePlot(root, { view: presets[0].view, height: 290, exprs: () => [presets[pi].expr] });
+        plot.canvas.parentElement.style.marginTop = "12px";
+        const ctrls = el(`<div class="controls"></div>`);
+        root.appendChild(ctrls);
+        const p0 = presets[0];
+        const sa = slider(ctrls, { label: "Sol uç a", min: p0.min, max: p0.max, step: 0.05, value: p0.a, format: (v) => `a = ${fmt(v, 2)}` }, render);
+        const sb = slider(ctrls, { label: "Sağ uç b", min: p0.min, max: p0.max, step: 0.05, value: p0.b, format: (v) => `b = ${fmt(v, 2)}` }, render);
+        const readout = el(`<div class="readout"></div>`);
+        root.appendChild(readout);
+        function render() {
+            let a = sa.get(), b = sb.get();
+            if (b < a) [a, b] = [b, a];
+            const fa = f(a), fb = f(b);
+            const items = [
+                { type: "shadeX", a, b },
+                { type: "fn", f, color: C.blue, width: 3 },
+                { type: "seg", x1: a, y1: fa, x2: b, y2: fb, color: C.pink, width: 2.4, label: "kiriş" },
+                { type: "point", x: a, y: fa, color: C.pink, label: "A", labelPos: "nw" },
+                { type: "point", x: b, y: fb, color: C.pink, label: "B" },
+            ];
+            if (b - a < 1e-6) { plot.setItems(items); readout.innerHTML = "a ile b farklı olmalı."; return; }
+            const m = (fb - fa) / (b - a);
+            // (a, b) içinde f'(c) = m olan noktaları tara
+            const N = 600, cs = [];
+            let prev = deriv(f, a + (b - a) / N) - m;
+            for (let i = 2; i < N; i++) {
+                const x = a + ((b - a) * i) / N, g = deriv(f, x) - m;
+                if (isFinite(g) && isFinite(prev) && Math.sign(g) !== Math.sign(prev) && Math.abs(g - prev) < 5) {
+                    let lo = x - (b - a) / N, hi = x;
+                    for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (Math.sign(deriv(f, mid) - m) === Math.sign(prev)) lo = mid; else hi = mid; }
+                    cs.push((lo + hi) / 2);
+                }
+                prev = g;
+            }
+            cs.slice(0, 4).forEach((c) => {
+                const fc = f(c);
+                items.push({ type: "fn", f: (x) => fc + m * (x - c), color: C.green, width: 2, dash: true });
+                items.push({ type: "point", x: c, y: fc, color: C.green, label: `c ≈ ${fmt(c, 3)}`, labelPos: "se" });
+            });
+            plot.setItems(items);
+            const rolle = Math.abs(fa - fb) < 1e-6 ? " f(a) = f(b) olduğundan bu <b>Rolle</b> durumudur: teğet yatay." : "";
+            readout.innerHTML = `Kiriş eğimi ${tex(`\\dfrac{f(b)-f(a)}{b-a} = ${texNum(m, 4)}`)}.${rolle}<br>` +
+                (cs.length ? `Teğeti kirişe paralel olan nokta(lar): ${cs.slice(0, 4).map((c) => `<b>c ≈ ${fmt(c, 4)}</b>`).join(", ")}.`
+                    : `<span class="muted">Bu aralıkta f′(c) = eğim olan nokta bulunamadı — f'nin [a, b]'de sürekli ve (a, b)'de türevli olduğunu kontrol et.</span>`);
+        }
+        render();
+    };
+
     W._helpers = { el, tex, texNum, fmt, makePlot, slider, chips, exactVal, radTex };
     global.Widgets = W;
 })(window);
